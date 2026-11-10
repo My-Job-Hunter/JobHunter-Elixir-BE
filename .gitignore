@@ -1,0 +1,37 @@
+# The directory Mix will write compiled artifacts to.
+/_build/
+
+# If you run "mix test --cover", coverage assets end up here.
+/cover/
+
+# The directory Mix downloads your dependencies sources to.
+/deps/
+
+# Where 3rd-party dependencies like ExDoc output generated docs.
+/doc/
+
+# Dialyzer's PLTs (`plt_file` in mix.exs): minutes to build, nothing to review.
+/priv/plts/
+
+# Ignore .fetch files in case you like to edit your project deps locally.
+/.fetch
+
+# If the VM crashes, it generates a dump, let's ignore it too.
+erl_crash.dump
+
+# Also ignore archive artifacts (built via "mix archive.build").
+*.ez
+
+# Temporary files, for example, from tests.
+/tmp/
+
+# Ignore package tarball (built via "mix hex.build").
+job_hunter-*.tar
+
+# A filled-in copy of sample.env holds real secrets.
+.env
+
+# Uploaded bytes (CVs, cover letters, assets — from P4). Outside `priv/static`
+# on purpose and never committed: this is somebody's documents.
+/apps/data/priv/uploads/
+/priv/uploads/

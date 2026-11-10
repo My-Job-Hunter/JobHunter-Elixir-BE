@@ -1,0 +1,184 @@
+{
+  "apply_methods": [
+    "in_platform_easy",
+    "external_ats",
+    "proposal",
+    "email",
+    "brief_response",
+    "referral",
+    "recruiter_inbound",
+    "other"
+  ],
+  "approval_kinds": [
+    "reply",
+    "proposal",
+    "cv_for_job",
+    "cover_letter",
+    "rate",
+    "asset",
+    "profile_change",
+    "other"
+  ],
+  "approval_states": [
+    "draft",
+    "pending",
+    "approved",
+    "changes_requested",
+    "rejected",
+    "withdrawn",
+    "expired"
+  ],
+  "channel_listeners": [
+    "none",
+    "extension",
+    "forwarding",
+    "oauth"
+  ],
+  "channel_operators": [
+    "customer",
+    "agency",
+    "staff_login"
+  ],
+  "channel_statuses": [
+    "active",
+    "paused",
+    "disconnected"
+  ],
+  "comp_periods": [
+    "hour",
+    "day",
+    "week",
+    "month",
+    "year",
+    "project"
+  ],
+  "customer_statuses": [
+    "invited",
+    "active",
+    "paused",
+    "ended"
+  ],
+  "document_kinds": [
+    "cv",
+    "cover_letter_template",
+    "portfolio",
+    "certificate",
+    "other"
+  ],
+  "engagement_types": [
+    "full_time",
+    "part_time",
+    "contract",
+    "freelance_hourly",
+    "freelance_fixed",
+    "internship",
+    "temporary",
+    "other"
+  ],
+  "lead_outcomes": [
+    "hired",
+    "rejected",
+    "withdrawn",
+    "position_closed",
+    "no_response",
+    "not_pursued"
+  ],
+  "lead_states": [
+    "to_do",
+    "in_progress",
+    "on_hold",
+    "done",
+    "archived"
+  ],
+  "meeting_kinds": [
+    "screening",
+    "technical",
+    "assessment_review",
+    "ai_interview",
+    "final",
+    "client_call",
+    "other"
+  ],
+  "meeting_platforms": [
+    "zoom",
+    "google_meet",
+    "teams",
+    "upwork",
+    "phone",
+    "on_site",
+    "other"
+  ],
+  "pipeline_keys": [
+    "employment",
+    "freelance"
+  ],
+  "platforms": [
+    "linkedin",
+    "upwork",
+    "indeed",
+    "fiverr",
+    "yc_waas",
+    "wellfound",
+    "email",
+    "other"
+  ],
+  "profile_statuses": [
+    "active",
+    "paused"
+  ],
+  "roles": [
+    "admin",
+    "manager",
+    "lead",
+    "member",
+    "customer"
+  ],
+  "seniorities": [
+    "entry",
+    "associate",
+    "mid_senior",
+    "director",
+    "executive",
+    "internship",
+    "not_applicable"
+  ],
+  "skill_levels": [
+    "familiar",
+    "working",
+    "strong",
+    "expert"
+  ],
+  "stage_kinds": [
+    "inbound",
+    "applied",
+    "seen",
+    "screening",
+    "assessment",
+    "interview",
+    "ai_interview",
+    "final",
+    "offer",
+    "negotiation",
+    "contract"
+  ],
+  "task_statuses": [
+    "draft",
+    "todo",
+    "in_progress",
+    "on_hold",
+    "done",
+    "closed",
+    "archived"
+  ],
+  "team_member_roles": [
+    "manager",
+    "lead",
+    "member"
+  ],
+  "workplace_types": [
+    "remote",
+    "hybrid",
+    "on_site",
+    "unknown"
+  ]
+}

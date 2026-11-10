@@ -1,0 +1,77 @@
+name: CI
+
+# Adapted from AutoCare's release-checks.yml. One job, because the gate is
+# one command: `mix precommit` runs exactly what a developer runs — compile
+# with warnings as errors, format, credo --strict, the suite — so a green
+# local run is a green pipeline and there is no second list to drift.
+#
+# Runs on every pull request and on pushes to main. Dispatchable by hand.
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+# A newer push to the same ref cancels the in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # `precommit` is pinned to :test by `cli/0` in mix.exs; setting it here too
+  # keeps deps.get and the cache on the same build.
+  MIX_ENV: test
+
+jobs:
+  precommit:
+    name: mix precommit
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # Plain Postgres: no PostGIS here (PLAN §2.2). The extensions the
+        # first migration creates (citext, pg_trgm, unaccent, btree_gist,
+        # pgcrypto) ship with it.
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: job_hunter_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          # .tool-versions is the single source of truth — the same file asdf
+          # reads locally, so CI cannot drift from a developer machine.
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Cache deps + _build
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: mix-${{ runner.os }}-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-${{ github.sha }}
+          restore-keys: |
+            mix-${{ runner.os }}-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-
+            mix-${{ runner.os }}-${{ hashFiles('.tool-versions') }}-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      # The `test` alias creates and migrates the database itself, so there is
+      # no separate ecto step to forget.
+      - name: mix precommit
+        run: mix precommit
