@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateCustomerTeams do
   use Ecto.Migration
 
   @moduledoc """
-  Which teams serve a customer (JH-01 §4.3; PLAN Q27: several may). The
+  Which teams serve a customer (AQ-01 §4.3; PLAN Q27: several may). The
   pair is unique; `since_on` is the day the assignment began.
   """
 

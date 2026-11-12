@@ -1,6 +1,6 @@
 defmodule Core.Mail do
   @moduledoc """
-  The one way `core` asks for a message to be sent (AutoCare's seam;
+  The one way `core` asks for a message to be sent (mCart's seam;
   CONVENTIONS §7). `core` may not name a `notifire` module, so the worker for
   each kind is read from `config :core, :mail_workers` and the message is a
   job: `Oban.Job.new/2`, never `Worker.new/1`.

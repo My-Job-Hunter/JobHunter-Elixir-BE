@@ -3,7 +3,7 @@ if Code.ensure_loaded?(Credo.Check) do
     @moduledoc """
     Caps a source file's length.
 
-    Set to **500** (copied from AutoCare). A 1000-line context is a context
+    Set to **500** (copied from mCart). A 1000-line context is a context
     that should have been two, and nobody notices it happening because it
     grows fifty lines at a time.
 

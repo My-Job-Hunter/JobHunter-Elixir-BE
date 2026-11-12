@@ -1,6 +1,6 @@
 defmodule Data.Customers.Document do
   @moduledoc """
-  A profile's document (JH-01 §4.3): a CV version, a cover-letter
+  A profile's document (AQ-01 §4.3): a CV version, a cover-letter
   template, a portfolio link, a certificate. **One row per version**: a new
   version is a new row with `version_no + 1` that supersedes the old one.
   A document has a file (`document_media`) or a `url`; `Core.Customers.Documents`
@@ -58,7 +58,7 @@ defmodule Data.Customers.Document do
 end
 
 defmodule Data.Customers.DocumentMedia do
-  @moduledoc "A document's file (JH-01 §4.3): the link to `media`, one per document."
+  @moduledoc "A document's file (AQ-01 §4.3): the link to `media`, one per document."
 
   use Data.Schema
 

@@ -1,6 +1,6 @@
 defmodule Data.Audit do
   @moduledoc """
-  The audit log's rows (`audit_events`, JH-01 §4.2). Storage only: what to
+  The audit log's rows (`audit_events`, AQ-01 §4.2). Storage only: what to
   record and who may read it are `Core.Audit`'s.
   """
 
@@ -43,8 +43,25 @@ defmodule Data.Audit do
     |> filter(:actor_user_id, filters[:actor_user_id])
     |> from_to(filters[:from], filters[:to])
     |> teams(filters[:team_ids])
+    |> about_customer(filters[:customer_id])
     |> cursor(filters[:cursor])
     |> Repo.all()
+  end
+
+  # AQ-04B QP4b-22: rows about a customer — the customer's own, and every
+  # row whose before or after names them.
+  defp about_customer(query, nil), do: query
+
+  defp about_customer(query, customer_id) do
+    text = to_string(customer_id)
+
+    where(
+      query,
+      [e],
+      (e.subject_kind == "customers" and e.subject_id == ^customer_id) or
+        fragment("(? ->> 'customer_id') = ?", e.after, ^text) or
+        fragment("(? ->> 'customer_id') = ?", e.before, ^text)
+    )
   end
 
   defp filter(query, _field, nil), do: query

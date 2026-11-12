@@ -1,6 +1,6 @@
 name: CI
 
-# Adapted from AutoCare's release-checks.yml. One job, because the gate is
+# Adapted from mCart's release-checks.yml. One job, because the gate is
 # one command: `mix precommit` runs exactly what a developer runs — compile
 # with warnings as errors, format, credo --strict, the suite — so a green
 # local run is a green pipeline and there is no second list to drift.
@@ -37,7 +37,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: job_hunter_test
+          POSTGRES_DB: autoqare_test
         ports:
           - 5432:5432
         options: >-

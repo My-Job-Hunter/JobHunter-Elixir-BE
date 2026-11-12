@@ -1,5 +1,5 @@
 defmodule Data.Organisations.OrgAdmin do
-  @moduledoc "One admin of the organisation (JH-01 §4.2)."
+  @moduledoc "The organisation's one system admin (AQ-01 §4.2; AQ-04A §4.0, QP4a-21)."
 
   use Data.Schema
 
@@ -20,7 +20,10 @@ defmodule Data.Organisations.OrgAdmin do
     admin
     |> cast(attrs, [:organisation_id, :user_id, :granted_at, :granted_by_user_id])
     |> validate_required([:organisation_id, :user_id, :granted_at])
-    |> unique_constraint([:organisation_id, :user_id], message: "is already an admin")
+    |> unique_constraint(:organisation_id,
+      name: :org_admins_organisation_id_index,
+      message: "already has its system admin"
+    )
     |> foreign_key_constraint(:organisation_id)
     |> foreign_key_constraint(:user_id)
   end

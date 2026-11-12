@@ -1,6 +1,6 @@
 defmodule Core.Accounts.Recovery do
   @moduledoc """
-  Proving a mailbox (JH-01 §6.1): forgot and reset a password, change an
+  Proving a mailbox (AQ-01 §6.1): forgot and reset a password, change an
   address with confirmation. Each writes a `user_tokens` row holding a
   digest and mails the token through the `notifire` seam (`Core.Mail`).
 

@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateGuardianTokens do
   use Ecto.Migration
 
   @moduledoc """
-  `guardian_db`'s token store, in its own shape (JH-01 §4.1).
+  `guardian_db`'s token store, in its own shape (AQ-01 §4.1).
 
   What makes sign-out-everywhere and suspension actually revoke a token:
   without it a JWT stays valid until it expires whatever the server thinks.

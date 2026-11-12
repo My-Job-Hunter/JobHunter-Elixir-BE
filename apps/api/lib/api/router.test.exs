@@ -15,7 +15,7 @@ defmodule Api.RouterTest do
     test "names the service and the build, and nothing else", %{conn: conn} do
       conn = get(conn, "/info")
 
-      assert json_response(conn, 200) == %{"name" => "job_hunter", "version" => "0.1.0"}
+      assert json_response(conn, 200) == %{"name" => "autoqare", "version" => "0.1.0"}
     end
 
     test "is never cached: a build number from a proxy is the wrong build", %{conn: conn} do
@@ -34,6 +34,20 @@ defmodule Api.RouterTest do
                  %{"app" => app, "api" => "v1", "version" => "0.1.0"}
       end
     end
+  end
+
+  test "built like a release, the root has no dev clock, sweeps nor push outbox (AQ-04B §7.6, AQ-08 QP8-16)",
+       %{conn: conn} do
+    refute Enum.any?(Api.Router.__routes__(), &String.starts_with?(&1.path, "/dev"))
+
+    for {method, path} <- [
+          {:get, "/dev/clock"},
+          {:post, "/dev/clock"},
+          {:post, "/dev/sweeps"},
+          {:get, "/dev/push/json"},
+          {:delete, "/dev/push/json"}
+        ],
+        do: assert(dispatch(conn, @endpoint, method, path).status == 404)
   end
 
   describe "an unknown path" do

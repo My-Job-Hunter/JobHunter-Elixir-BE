@@ -1,15 +1,22 @@
 defmodule ApiTeam.OrgControllerTest do
   use ApiTeam.TeamCase, async: true
 
+  @admin_words "Only the system admin can do that."
+
   setup do
     org = organisation_fixture(name: "Regbits BD")
     team = team_fixture(org)
     admin = admin_fixture(org)
-    manager = member_fixture(team, :manager)
-    %{org: org, team: team, admin: admin, manager: manager, member: member_fixture(team, :member)}
+    lead = member_fixture(team, :lead)
+    %{org: org, team: team, admin: admin, lead: lead, member: member_fixture(team, :member)}
   end
 
-  test "GET /org and PUT /org/settings", %{org: org, admin: admin, member: member} do
+  test "GET /org and PUT /org/settings: Settings › System, the system admin's alone", %{
+    org: org,
+    admin: admin,
+    lead: lead,
+    member: member
+  } do
     conn = call(admin, :get, "/v1/org")
     assert conn.status == 200
 
@@ -27,38 +34,24 @@ defmodule ApiTeam.OrgControllerTest do
     assert body(conn)["currency_code"] == "PKR"
 
     assert call(admin, :put, "/v1/org/settings", %{warning_days: 0}).status == 422
-    assert call(member, :get, "/v1/org").status == 403
-    assert code(call(member, :put, "/v1/org/settings", %{warning_days: 2})) == "forbidden"
+
+    for who <- [lead, member] do
+      refused = call(who, :get, "/v1/org")
+      assert refused.status == 403
+      assert body(refused)["error"]["message"] == @admin_words
+      assert code(call(who, :put, "/v1/org/settings", %{warning_days: 2})) == "forbidden"
+    end
   end
 
-  test "admins: list, grant, revoke, the last-admin guard", %{admin: admin, manager: manager} do
-    conn = call(admin, :get, "/v1/org/admins")
-    assert conn.status == 200
-    assert [%{"user_id" => id}] = body(conn)
-    assert id == admin.id
-
-    conn = call(admin, :post, "/v1/org/admins", %{user_id: manager.id})
-    assert conn.status == 201
-    assert body(conn)["user_id"] == manager.id
-    assert call(admin, :post, "/v1/org/admins", %{user_id: manager.id}).status == 409
-    assert call(admin, :post, "/v1/org/admins", %{}).status == 422
-
-    assert call(admin, :delete, "/v1/org/admins/#{manager.id}").status == 204
-    conn = call(admin, :delete, "/v1/org/admins/#{admin.id}")
-    assert conn.status == 409
-
-    assert body(conn)["error"] == %{
-             "code" => "last_admin",
-             "message" => "The organisation needs one admin. Grant another first.",
-             "details" => %{}
-           }
-
-    assert call(manager, :get, "/v1/org/admins").status == 403
+  test "the admins routes are gone (QP4a-21)", %{admin: admin, lead: lead} do
+    assert call(admin, :get, "/v1/org/admins").status == 404
+    assert call(admin, :post, "/v1/org/admins", %{user_id: lead.id}).status == 404
+    assert call(admin, :delete, "/v1/org/admins/#{lead.id}").status == 404
   end
 
-  test "GET /org/audit pages the log for an admin and a manager, not a member", %{
+  test "GET /org/audit pages the log for the system admin, not a team lead or a member", %{
     admin: admin,
-    manager: manager,
+    lead: lead,
     member: member,
     team: team
   } do
@@ -77,7 +70,7 @@ defmodule ApiTeam.OrgControllerTest do
 
     conn = call(admin, :get, "/v1/org/audit?subject_kind=teams&subject_id=#{team.id}")
     assert length(body(conn)["items"]) == 1
-    assert call(manager, :get, "/v1/org/audit").status == 200
+    assert call(lead, :get, "/v1/org/audit").status == 403
     assert call(member, :get, "/v1/org/audit").status == 403
     assert call(admin, :get, "/v1/org/audit?cursor=garbage").status == 422
   end

@@ -1,5 +1,5 @@
 defmodule ApiTeam.OrgJSON do
-  @moduledoc "The organisation's shapes (JH-01 §6.2)."
+  @moduledoc "The organisation's shapes (AQ-01 §6.2)."
 
   alias ApiShared.MeJSON
   alias Data.Organisations.OrganisationSettings
@@ -12,22 +12,8 @@ defmodule ApiTeam.OrgJSON do
     |> Map.put(:settings, Map.new(OrganisationSettings.fields(), &{&1, Map.get(settings, &1)}))
   end
 
-  def admins(%{admins: admins}), do: Enum.map(admins, &admin_json/1)
-
-  def admin(%{admin: admin}), do: admin_json(admin)
-
   def audit(%{events: events, next_cursor: cursor}) do
     %{items: Enum.map(events, &event_json/1), next_cursor: cursor}
-  end
-
-  defp admin_json(admin) do
-    %{
-      user_id: admin.user_id,
-      display_name: admin.user.person.display_name,
-      email: admin.user.email,
-      granted_at: admin.granted_at,
-      granted_by_user_id: admin.granted_by_user_id
-    }
   end
 
   defp event_json(e) do

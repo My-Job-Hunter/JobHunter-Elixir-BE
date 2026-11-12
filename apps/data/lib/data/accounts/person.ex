@@ -1,6 +1,6 @@
 defmodule Data.Accounts.Person do
   @moduledoc """
-  A human, with or without an account (JH-01 §4.1). The name, the photo, the
+  A human, with or without an account (AQ-01 §4.1). The name, the photo, the
   timezone and the locale live here, not on the login. The photo is a link
   row (`person_photos`), read through `photo_media_id/1`.
   """

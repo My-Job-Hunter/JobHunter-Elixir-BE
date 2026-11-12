@@ -1,7 +1,9 @@
 defmodule Data.SeedsTest do
   @moduledoc """
-  What gets seeded, and in what order. The production seed holds the skills
-  vocabulary (P1.2); the other kinds are still empty.
+  What gets seeded, and in what order. The reference seed holds the
+  notification groups and kinds (P2) and the extension's selector
+  documents (P5), the production seed the skills
+  vocabulary (P1.2) after them; the demo seed is empty by design.
   """
 
   use Data.DataCase, async: true
@@ -41,10 +43,23 @@ defmodule Data.SeedsTest do
   end
 
   describe "run" do
-    test "an empty kind runs and loads nothing; the production seed runs its groups" do
-      assert Seeds.run(:reference) == {:ok, []}
+    test "an empty kind runs and loads nothing; reference and production run their groups" do
+      # The suite's database ran the reference seed before the suite: both
+      # sites' selector documents are there already, so both are kept.
+      assert {:ok,
+              [
+                {"the notification groups and kinds", %{kept: 36}},
+                {"the extension's selector documents", %{inserted: 0, kept: 2}}
+              ]} = Seeds.run(:reference)
+
       assert Seeds.run(:demo) == {:ok, []}
-      assert {:ok, [{"the skills vocabulary", %{inserted: 0, kept: 0}}]} = Seeds.run(:prod)
+
+      assert {:ok,
+              [
+                {"the notification groups and kinds", %{inserted: 0, updated: 0, kept: 36}},
+                {"the extension's selector documents", %{inserted: 0, kept: 2}},
+                {"the skills vocabulary", %{inserted: 0, kept: 0}}
+              ]} = Seeds.run(:prod)
 
       assert Seeds.summary(:prod, [{"the skills vocabulary", %{inserted: 120, kept: 3}}]) =~
                "(123)"

@@ -59,13 +59,53 @@ defmodule ApiClient.RouterPipelineTest do
           {"PUT", "/v1/profiles/p/default-document"},
           {"GET", "/v1/skills"}
         ] do
-      assert :jh_authenticated in pipes(method, path), "#{method} #{path} is not authenticated"
+      assert :aq_authenticated in pipes(method, path), "#{method} #{path} is not authenticated"
 
-      assert :jh_customer in pipes(method, path),
+      assert :aq_customer in pipes(method, path),
              "#{method} #{path} is not pinned to the customer"
 
       conn = Router.call(conn(String.to_atom(String.downcase(method)), path), Router.init([]))
       assert conn.status == 401, "#{method} #{path} without a token answered #{conn.status}"
+    end
+  end
+
+  test "every board route of AQ-02 §7.3 is authenticated and pinned; the bell is shared" do
+    for {method, path} <- [
+          {"GET", "/v1/board"},
+          {"GET", "/v1/leads"},
+          {"GET", "/v1/leads/l"},
+          {"POST", "/v1/leads/l/applied"},
+          {"GET", "/v1/suggestions"},
+          {"POST", "/v1/tasks"},
+          {"GET", "/v1/tasks/t"},
+          {"PATCH", "/v1/tasks/t"},
+          {"POST", "/v1/tasks/t/done"},
+          {"POST", "/v1/tasks/t/reopen"},
+          {"POST", "/v1/tasks/t/withdraw"},
+          {"POST", "/v1/tasks/t/checklist/i/toggle"},
+          {"POST", "/v1/tasks/t/steps/s/toggle"},
+          {"POST", "/v1/tasks/t/files"},
+          {"GET", "/v1/tasks/t/history"},
+          {"GET", "/v1/tasks/t/comments"},
+          {"POST", "/v1/tasks/t/comments"},
+          {"POST", "/v1/tasks/t/comments/c/replies"},
+          {"PATCH", "/v1/task-comments/c"},
+          {"DELETE", "/v1/task-comments/c"},
+          {"PATCH", "/v1/task-replies/r"},
+          {"DELETE", "/v1/task-replies/r"}
+        ] do
+      assert :aq_customer in pipes(method, path),
+             "#{method} #{path} is not pinned to the customer"
+    end
+
+    for path <- ["/v1/notifications", "/v1/notifications/count", "/v1/notifications/groups"] do
+      assert :aq_authenticated in pipes("GET", path)
+    end
+
+    # The portal moves nothing but its own verbs: no staff verb exists here.
+    for verb <- ~w(start move hold resume close archive unarchive assignees watch mute) do
+      assert Phoenix.Router.route_info(Router, "POST", "/v1/tasks/t/#{verb}", "localhost").plug ==
+               ApiShared.NotFoundController
     end
   end
 

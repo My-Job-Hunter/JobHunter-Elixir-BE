@@ -1,55 +1,45 @@
 defmodule Core.Clock do
   @moduledoc """
-  The one *now*.
+  The one *now*, as `core` asks for it: **a delegate to `Utils.Clock`**
+  (AQ-08 QP8-22), which holds *now*, `today`, `freeze` and the dev offset
+  so `notifire` reads the same time without calling `core`.
 
   **Rules take `now` as an argument** (PLAN §15.7: every rule takes `now`;
   every job is idempotent). A pure engine never reads the clock; the caller
   that orchestrates it asks this module once and passes the value down, so a
   test can hand a rule any moment it likes.
 
-  ## Freezing it in a test
-
-  `freeze/1` pins *now* for the calling process only, so `async: true` tests
-  cannot see each other's clocks:
-
-      Core.Clock.freeze(~U[2026-11-06 09:00:00.000000Z])
-      Core.Clock.now()
-      #=> ~U[2026-11-06 09:00:00.000000Z]
-
-  It lives in the process dictionary, so a process the test spawns reads the
-  real time. Pass `now` to it instead: that is the rule above.
-
-  PLAN P4 moves a **dev clock** (an offset a whole dev server shares, to watch
-  leads archive after 90 quiet days) into this module; nothing else may read
-  the time for a rule.
+  `freeze/1` pins *now* for the calling process only (`async: true` tests
+  cannot see each other's clocks). The dev clock (AQ-04B §7.6) is an offset
+  in days every reader adds, set by `POST /dev/clock {days}` on a dev
+  server and refused unless `config :core, dev_clock: true`. `freeze/1`
+  still wins.
   """
 
-  @key {__MODULE__, :frozen}
-
-  @doc "The time, in UTC: the frozen moment for this process, or the real one."
+  @doc "The time, in UTC: the frozen moment for this process, or the real one plus the dev offset."
   @spec now() :: DateTime.t()
-  def now do
-    case Process.get(@key) do
-      %DateTime{} = frozen -> frozen
-      nil -> DateTime.utc_now()
-    end
-  end
+  defdelegate now(), to: Utils.Clock
 
   @doc "Today's date in UTC, read from `now/0`."
   @spec today() :: Date.t()
-  def today, do: DateTime.to_date(now())
+  defdelegate today(), to: Utils.Clock
 
   @doc "Pins `now/0` to `at` for the calling process. Tests only."
   @spec freeze(DateTime.t()) :: :ok
-  def freeze(%DateTime{time_zone: "Etc/UTC"} = at) do
-    Process.put(@key, at)
-    :ok
-  end
+  defdelegate freeze(at), to: Utils.Clock
 
   @doc "Lets `now/0` run again for the calling process."
   @spec unfreeze() :: :ok
-  def unfreeze do
-    Process.delete(@key)
-    :ok
-  end
+  defdelegate unfreeze(), to: Utils.Clock
+
+  @doc "The dev clock's offset, in whole days (0 unless a dev server moved it)."
+  @spec offset_days() :: integer()
+  defdelegate offset_days(), to: Utils.Clock
+
+  @doc """
+  Moves the dev clock to `days` ahead of the real time (`0` resets it).
+  `{:error, :disabled}` unless `config :core, dev_clock: true`.
+  """
+  @spec set_offset_days(integer()) :: :ok | {:error, :disabled}
+  defdelegate set_offset_days(days), to: Utils.Clock
 end

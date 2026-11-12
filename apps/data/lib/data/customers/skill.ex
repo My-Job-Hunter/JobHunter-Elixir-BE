@@ -1,6 +1,6 @@
 defmodule Data.Customers.Skill do
   @moduledoc """
-  One entry of the skills vocabulary (JH-01 §4.3, QP1-4). The slug is what
+  One entry of the skills vocabulary (AQ-01 §4.3, QP1-4). The slug is what
   keeps "Node" and "Node.js" from both standing; the name is what the screen
   shows. Archived, never deleted: profiles point at it.
   """

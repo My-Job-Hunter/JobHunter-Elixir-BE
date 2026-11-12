@@ -1,6 +1,6 @@
 defmodule Core.Organisation.Invitations do
   @moduledoc """
-  The front door (JH-01 §3, §6.1, §6.2). An invitation names what the
+  The front door (AQ-01 §3, §6.1, §6.2). An invitation names what the
   person becomes; the link opens `/invite/:code`; accepting makes the account
   or adds the role, and signs the person in.
 
@@ -43,7 +43,7 @@ defmodule Core.Organisation.Invitations do
 
   # ── Staff side ──────────────────────────────────────────────────────────────
 
-  @doc "`GET /invitations?state=open`: all for an admin, the caller's teams' for a manager or lead."
+  @doc "`GET /invitations?state=open`: all for the system admin, the caller's teams' for a team lead."
   @spec list(Scope.t(), map()) :: {:ok, [Invitation.t()]} | {:error, term()}
   def list(%Scope{organisation: organisation} = scope, params \\ %{}) do
     with :ok <- Access.why_not(scope, :list, {:invitation, %{}}) do
@@ -65,6 +65,7 @@ defmodule Core.Organisation.Invitations do
     params = Map.new(params, fn {k, v} -> {to_string(k), v} end)
 
     with {:ok, kind} <- kind(params["kind"]),
+         :ok <- not_admin(scope, kind),
          {:ok, target, subject} <- target(scope, kind, params),
          :ok <- Access.why_not(scope, :create, {:invitation, subject}),
          :ok <- within_reach(scope, kind, params) do
@@ -431,11 +432,21 @@ defmodule Core.Organisation.Invitations do
     end
   end
 
-  # A lead invites nobody above lead (`:role_above_yours`): the same reach
-  # `Core.Organisation.Teams.change_role/4` has.
-  defp within_reach(scope, :team_member, %{"team_id" => team_id, "role" => role}) do
-    lead? = not Scope.admin?(scope) and Scope.team_role(scope, team_id) == :lead
-    if lead? and to_string(role) == "manager", do: {:error, :role_above_yours}, else: :ok
+  # The one admin invitation is the bootstrap's (AQ-04A §8.5, QP4a-21): from
+  # a route, `kind: admin` is a field error.
+  defp not_admin(%Scope{via: :system, user: nil}, :admin), do: :ok
+
+  defp not_admin(_scope, :admin),
+    do: {:error, {:invalid, %{"kind" => ["is team_member or customer"]}}}
+
+  defp not_admin(_scope, _kind), do: :ok
+
+  # A team lead invites staff; a team lead is the system admin's to invite
+  # (AQ-04A §8.5).
+  defp within_reach(scope, :team_member, %{"role" => role}) do
+    if to_string(role) == "lead" and not Scope.admin?(scope),
+      do: {:error, {:forbidden, Access.admin_words()}},
+      else: :ok
   end
 
   defp within_reach(_scope, _kind, _params), do: :ok

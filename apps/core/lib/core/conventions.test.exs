@@ -2,8 +2,8 @@ defmodule Core.ConventionsTest do
   @moduledoc """
   Conventions enforced as tests, because their failure mode is silence.
 
-  Copied from AutoCare's `Core.ConventionsTest` with every rule kept. Dropped,
-  because they guard seams Job Hunter does not have: AutoCare's task-query
+  Copied from mCart's `Core.ConventionsTest` with every rule kept. Dropped,
+  because they guard seams AutoQare does not have: mCart's task-query
   seam (`Data.Tasks.scope_query/2`, which excludes series templates from a
   board) and its list of not-yet-converted enum fields (we start with none).
 
@@ -172,7 +172,7 @@ defmodule Core.ConventionsTest do
     # **`validate_inclusion` holds only where a changeset runs.** `Ecto.Enum`
     # checks on cast, load *and* dump; the CHECK constraint beside it is what
     # stops a mix task or a psql session writing something the code cannot
-    # read. AutoCare carries a list of fields not yet converted; we start with
+    # read. mCart carries a list of fields not yet converted; we start with
     # none, so there is no list.
     test "a closed set is an Ecto.Enum, not validate_inclusion against a ~w() list" do
       offenders =

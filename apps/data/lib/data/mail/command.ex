@@ -1,6 +1,6 @@
 defmodule Data.Mail.Command do
   @moduledoc """
-  What one enqueued message says, checked before it is enqueued (AutoCare's
+  What one enqueued message says, checked before it is enqueued (mCart's
   seam, CONVENTIONS §7).
 
   **Why it lives in `data`**: `core` decides to send and `notifire` sends,

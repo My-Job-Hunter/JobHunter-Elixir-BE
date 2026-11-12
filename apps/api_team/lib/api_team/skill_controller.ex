@@ -1,5 +1,5 @@
 defmodule ApiTeam.SkillController do
-  @moduledoc "The skills vocabulary (JH-01 §6.2, QP1-4)."
+  @moduledoc "The skills vocabulary (AQ-01 §6.2, QP1-4)."
 
   use Phoenix.Controller, formats: [:json]
 

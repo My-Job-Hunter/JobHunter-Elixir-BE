@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateTeams do
   use Ecto.Migration
 
   @moduledoc """
-  A team of the organisation (JH-01 §4.2): Backend squad, Frontend squad.
+  A team of the organisation (AQ-01 §4.2): Backend squad, Frontend squad.
   Archived, never deleted: its members' history stays readable.
   """
 

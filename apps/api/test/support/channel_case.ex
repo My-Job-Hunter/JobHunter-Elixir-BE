@@ -1,13 +1,13 @@
 defmodule Api.ChannelCase do
   @moduledoc """
   Test case for anything that goes through the socket or a **joined channel**
-  (copied from AutoCare).
+  (copied from mCart).
 
   `Api.ConnCase` covers the HTTP half. `Phoenix.ChannelTest` starts a real
   channel process, so `assert_push` proves a message reached a subscriber the
   way the app delivers it — rather than proving a `%Broadcast{}` reached a
   bare process that subscribed to PubSub by hand, which is the test that
-  stayed green while AutoCare's broadcasts crashed every joined client.
+  stayed green while mCart's broadcasts crashed every joined client.
 
   It lives in `api` because `@endpoint` has to be `Api.Endpoint`, and `core`
   may never name it. In P0 its one use is proving the socket refuses.

@@ -5,13 +5,14 @@ defmodule Core.Organisation.TeamsTest do
   alias Data.Audit
 
   @now ~U[2026-11-09 10:00:00.000000Z]
+  @admin_words "Only the system admin can do that."
 
   setup do
     org = organisation_fixture()
     backend = team_fixture(org, name: "Backend squad")
     frontend = team_fixture(org, name: "Frontend squad")
     admin = admin_fixture(org)
-    manager = member_fixture(backend, :manager)
+    other_lead = member_fixture(backend, :lead)
     lead = member_fixture(backend, :lead)
     member = member_fixture(backend, :member)
 
@@ -20,28 +21,26 @@ defmodule Core.Organisation.TeamsTest do
       backend: backend,
       frontend: frontend,
       admin: scope_for(admin),
-      manager: scope_for(manager),
       lead: scope_for(lead),
       member: scope_for(member),
-      manager_user: manager,
+      other_lead_user: other_lead,
       lead_user: lead,
       member_user: member
     }
   end
 
   describe "teams" do
-    test "list: all for an admin or a manager, own for others", %{
+    test "list: all for the system admin, own for everyone else", %{
       admin: admin,
-      manager: manager,
+      lead: lead,
       member: member,
       backend: backend
     } do
       assert {:ok, teams} = Teams.list(admin)
       assert length(teams) == 2
-      assert {:ok, teams} = Teams.list(manager)
-      assert length(teams) == 2
-      assert {:ok, [%{id: id}]} = Teams.list(member)
-      assert id == backend.id
+      assert {:ok, [%{id: lead_team}]} = Teams.list(lead)
+      assert {:ok, [%{id: member_team}]} = Teams.list(member)
+      assert lead_team == backend.id and member_team == backend.id
     end
 
     test "get: a team the caller is not in does not exist", %{
@@ -55,34 +54,37 @@ defmodule Core.Organisation.TeamsTest do
       assert Teams.get(member, "nonsense") == {:error, :not_found}
     end
 
-    test "create: by an admin or a manager, with default settings, audited; a lead may not", %{
-      org: org,
-      manager: manager,
-      lead: lead
-    } do
-      assert {:ok, team} = Teams.create(manager, %{"name" => "Data squad"})
+    test "create: by the system admin, with default settings, audited; a team lead is refused in §8.5's words",
+         %{org: org, admin: admin, lead: lead} do
+      assert {:ok, team} = Teams.create(admin, %{"name" => "Data squad"})
       assert team.slug == "data-squad"
-      assert Data.Teams.get_settings(team.id).members_see_peer_leads == true
+
+      assert %{peer_tasks: :view, peer_leads: :view, peer_jobs: :edit} =
+               Data.Teams.get_settings(team.id)
 
       assert [%{action: "created", after: %{"name" => "Data squad"}}] =
                Audit.list_for_subject(org.id, "teams", team.id)
 
-      assert {:error, %Ecto.Changeset{}} = Teams.create(manager, %{"name" => "Data squad"})
-      assert {:error, %Ecto.Changeset{}} = Teams.create(manager, %{"name" => ""})
-      assert {:error, {:forbidden, _words}} = Teams.create(lead, %{"name" => "Another"})
+      assert {:error, %Ecto.Changeset{}} = Teams.create(admin, %{"name" => "Data squad"})
+      assert {:error, %Ecto.Changeset{}} = Teams.create(admin, %{"name" => ""})
+      assert Teams.create(lead, %{"name" => "Another"}) == {:error, {:forbidden, @admin_words}}
     end
 
-    test "update and archive: a manager yes, a lead no, audited", %{
+    test "update and archive: the system admin yes, a team lead no, audited", %{
       org: org,
-      manager: manager,
+      admin: admin,
       lead: lead,
       backend: backend
     } do
-      assert {:ok, updated} = Teams.update(manager, backend.id, %{"name" => "Backend"})
+      assert {:ok, updated} = Teams.update(admin, backend.id, %{"name" => "Backend"})
       assert updated.name == "Backend"
-      assert {:error, {:forbidden, _words}} = Teams.update(lead, backend.id, %{"name" => "Nope"})
 
-      assert {:ok, archived} = Teams.archive(manager, backend.id, @now)
+      assert Teams.update(lead, backend.id, %{"name" => "Nope"}) ==
+               {:error, {:forbidden, @admin_words}}
+
+      assert Teams.archive(lead, backend.id, @now) == {:error, {:forbidden, @admin_words}}
+
+      assert {:ok, archived} = Teams.archive(admin, backend.id, @now)
       assert archived.archived_at == @now
       assert {:ok, []} = Teams.list(scope_for(lead.user))
       rows = Audit.list_for_subject(org.id, "teams", backend.id)
@@ -92,7 +94,7 @@ defmodule Core.Organisation.TeamsTest do
   end
 
   describe "settings" do
-    test "read and written by a lead or above, audited with the team named", %{
+    test "read and written by a team lead, audited with the team named", %{
       org: org,
       lead: lead,
       member: member,
@@ -121,6 +123,28 @@ defmodule Core.Organisation.TeamsTest do
       assert {:error, {:forbidden, _words}} =
                Teams.put_settings(member, backend.id, %{"customer_sees_staff_names" => true})
     end
+
+    test "the three levels: any subset, audited before and after; a level off the list is a field error",
+         %{org: org, lead: lead, backend: backend} do
+      assert {:ok, settings} =
+               Teams.put_settings(lead, backend.id, %{
+                 "peer_tasks" => "hidden",
+                 "peer_jobs" => "view"
+               })
+
+      assert {settings.peer_tasks, settings.peer_leads, settings.peer_jobs} ==
+               {:hidden, :view, :view}
+
+      assert [%{before: before, after: after_map}] =
+               Audit.list_for_subject(org.id, "team_settings", backend.id)
+
+      assert {before["peer_tasks"], after_map["peer_tasks"]} == {"view", "hidden"}
+
+      assert {:error, %Ecto.Changeset{} = cs} =
+               Teams.put_settings(lead, backend.id, %{"peer_leads" => "sometimes"})
+
+      assert cs.errors[:peer_leads]
+    end
   end
 
   describe "members" do
@@ -130,7 +154,7 @@ defmodule Core.Organisation.TeamsTest do
       frontend: frontend
     } do
       assert {:ok, members} = Teams.list_members(member, backend.id)
-      assert Enum.map(members, & &1.role) |> Enum.sort() == [:lead, :manager, :member]
+      assert Enum.map(members, & &1.role) |> Enum.sort() == [:lead, :lead, :member]
       assert Enum.all?(members, & &1.user.person.display_name)
       assert Teams.list_members(member, frontend.id) == {:error, :not_found}
     end
@@ -154,20 +178,20 @@ defmodule Core.Organisation.TeamsTest do
       assert team_id == backend.id
     end
 
-    test "change_role: a manager promotes to manager; a lead may not (role_above_yours)", %{
+    test "change_role is the system admin's: lead and back, audited; a team lead is refused", %{
       org: org,
-      manager: manager,
+      admin: admin,
       lead: lead,
       backend: backend,
       member_user: member_user
     } do
-      assert {:error, :role_above_yours} =
-               Teams.change_role(lead, backend.id, member_user.id, "manager")
+      assert Teams.change_role(lead, backend.id, member_user.id, "lead") ==
+               {:error, {:forbidden, @admin_words}}
 
-      assert {:ok, changed} = Teams.change_role(lead, backend.id, member_user.id, "lead")
+      assert {:ok, changed} = Teams.change_role(admin, backend.id, member_user.id, "lead")
       assert changed.role == :lead
-      assert {:ok, changed} = Teams.change_role(manager, backend.id, member_user.id, "manager")
-      assert changed.role == :manager
+      assert {:ok, changed} = Teams.change_role(admin, backend.id, member_user.id, "member")
+      assert changed.role == :member
 
       assert [
                %{
@@ -175,27 +199,33 @@ defmodule Core.Organisation.TeamsTest do
                  before: %{"role" => "member"},
                  after: %{"role" => "lead"}
                },
-               _second
+               _back
              ] =
                Audit.list_for_subject(org.id, "team_members", changed.id)
     end
 
-    test "a lead cannot touch a manager, nor an unknown role, nor a member who is not there", %{
+    test "no manager role; an unknown role and a member who is not there are refused", %{
+      admin: admin,
+      backend: backend,
+      member_user: member_user
+    } do
+      assert Teams.change_role(admin, backend.id, member_user.id, "manager") ==
+               {:error, {:missing, :role}}
+
+      assert Teams.change_role(admin, backend.id, Ecto.UUID.generate(), "member") ==
+               {:error, :not_found}
+    end
+
+    test "a team lead removes staff of their team, never another lead", %{
       lead: lead,
       backend: backend,
-      manager_user: manager_user
+      other_lead_user: other_lead,
+      member_user: member_user
     } do
-      assert Teams.change_role(lead, backend.id, manager_user.id, "member") ==
-               {:error, :role_above_yours}
+      assert Teams.remove_member(lead, backend.id, other_lead.id, @now) ==
+               {:error, {:forbidden, @admin_words}}
 
-      assert Teams.remove_member(lead, backend.id, manager_user.id, @now) ==
-               {:error, :role_above_yours}
-
-      assert Teams.change_role(lead, backend.id, Ecto.UUID.generate(), "member") ==
-               {:error, :not_found}
-
-      assert Teams.change_role(lead, backend.id, manager_user.id, "boss") ==
-               {:error, {:missing, :role}}
+      assert Teams.remove_member(lead, backend.id, member_user.id, @now) == :ok
     end
 
     test "a member may change nobody", %{member: member, backend: backend, lead_user: lead_user} do
@@ -208,23 +238,23 @@ defmodule Core.Organisation.TeamsTest do
 
     test "remove_member ends the membership and audits it", %{
       org: org,
-      manager: manager,
+      admin: admin,
       backend: backend,
       member_user: member_user
     } do
       membership = Data.Teams.get_open_member(backend.id, member_user.id)
-      assert Teams.remove_member(manager, backend.id, member_user.id, @now) == :ok
+      assert Teams.remove_member(admin, backend.id, member_user.id, @now) == :ok
       assert Data.Teams.get_open_member(backend.id, member_user.id) == nil
       assert Repo.get!(Data.Teams.TeamMember, membership.id).left_at == @now
 
       assert [%{action: "removed"}] =
                Audit.list_for_subject(org.id, "team_members", membership.id)
 
-      assert Teams.remove_member(manager, backend.id, member_user.id, @now) ==
+      assert Teams.remove_member(admin, backend.id, member_user.id, @now) ==
                {:error, :not_found}
     end
 
-    test "the team keeps a lead or a manager while it has members", %{org: org, admin: admin} do
+    test "the team keeps a lead while it has members", %{org: org, admin: admin} do
       team = team_fixture(org)
       only_lead = member_fixture(team, :lead)
       member = member_fixture(team, :member)
@@ -232,7 +262,7 @@ defmodule Core.Organisation.TeamsTest do
       assert {:error, {:forbidden, words}} =
                Teams.remove_member(admin, team.id, only_lead.id, @now)
 
-      assert words =~ "lead or a manager"
+      assert words =~ "needs a lead"
 
       assert {:error, {:forbidden, _words}} =
                Teams.change_role(admin, team.id, only_lead.id, "member")

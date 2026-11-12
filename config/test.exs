@@ -7,8 +7,8 @@ config :data, Data.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
-  port: String.to_integer(System.get_env("JH_DB_PORT", "5432")),
-  database: "job_hunter_test#{System.get_env("MIX_TEST_PARTITION")}",
+  port: String.to_integer(System.get_env("AQ_DB_PORT", "5432")),
+  database: "autoqare_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
@@ -39,6 +39,20 @@ config :core, Oban, testing: :manual
 # Nothing leaves the machine, and `assert_email_sent` works off the mailbox.
 config :notifire, Notifire.Mailer, adapter: Swoosh.Adapters.Test
 
+# Web Push (AQ-08 §7.6): a test-only VAPID pair, so encryption and signing
+# are exercised; **test only records** in the outbox, unless a test asks to
+# send, and then to its own stand-in endpoint (`Req.Test`), never the network.
+config :notifire, :web_push,
+  public_key:
+    "BLoFcqN7luG_hvgzatDkz5FvleOrgyYLcRvyOMyZr9ET8coy-uM6rCfrSi1KIC04te6DY4Fp3sVcFIXQ5lNhL8E",
+  private_key: "thW05A9SDjnJDHZ7HEH3Aq2KtOQMUsNas5vIj-159Kc",
+  subject: "mailto:support@autoqare.com"
+
+config :notifire,
+  push_send: false,
+  push_outbox: true,
+  push_req_options: [plug: {Req.Test, Notifire.Push}]
+
 # The token sweeper deletes expired `guardian_tokens` on a timer. Under the
 # SQL sandbox it would run from a process no case checked out a connection
 # for, so it would raise rather than sweep.
@@ -48,8 +62,8 @@ config :core, start_token_sweeper: false
 # enough that the too-large test does not have to build five megabytes.
 config :core, :storage,
   adapter: Core.Storage.Local,
-  root: Path.join(System.tmp_dir!(), "job-hunter-test-uploads"),
-  max_bytes: [photo: 5_000, document: 12_000, attachment: 12_000]
+  root: Path.join(System.tmp_dir!(), "autoqare-test-uploads"),
+  max_bytes: [photo: 5_000, document: 12_000, attachment: 12_000, eml: 12_000]
 
 # Google against the tests' own keys (`Core.Auth.GoogleTestKeys`); the
 # stand-in is tested by switching it on for one test.

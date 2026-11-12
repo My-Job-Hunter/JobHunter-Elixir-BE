@@ -1,6 +1,6 @@
 defmodule Data.Documents do
   @moduledoc """
-  A profile's documents and their files (JH-01 §4.3). Storage only. Every
+  A profile's documents and their files (AQ-01 §4.3). Storage only. Every
   read answers the document with its profile and the profile's customer
   (with `team_ids`), because `Core.Access` decides from the customer.
   """

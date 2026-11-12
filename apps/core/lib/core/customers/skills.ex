@@ -1,6 +1,6 @@
 defmodule Core.Customers.Skills do
   @moduledoc """
-  The skills vocabulary (JH-01 §4.3, QP1-4): seeded (`Data.Seeds.Skills`),
+  The skills vocabulary (AQ-01 §4.3, QP1-4): seeded (`Data.Seeds.Skills`),
   extended by staff, archived — never deleted — by a lead or above. Every
   signed-in account of the organisation reads it, the customer included,
   because the portal edits a profile's skills.

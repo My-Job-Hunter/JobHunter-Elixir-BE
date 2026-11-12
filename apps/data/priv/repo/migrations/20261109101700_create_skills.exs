@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateSkills do
   use Ecto.Migration
 
   @moduledoc """
-  The skills vocabulary (JH-01 §4.3, QP1-4): seeded by `jh.prod_seed`
+  The skills vocabulary (AQ-01 §4.3, QP1-4): seeded by `aq.prod_seed`
   (about 120, by category) and extended by staff. Slugs are unique per
   organisation so "Node" and "Node.js" cannot both stand; a skill is
   archived, never deleted, because profiles point at it (restrict).

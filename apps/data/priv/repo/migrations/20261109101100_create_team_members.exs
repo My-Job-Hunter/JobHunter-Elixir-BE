@@ -2,13 +2,13 @@ defmodule Data.Repo.Migrations.CreateTeamMembers do
   use Ecto.Migration
 
   @moduledoc """
-  Who is in a team, as what (JH-01 §4.2; PLAN §3.1). The organisation's
-  **manager** role is this row with `role = manager` (QP1-9); "manager of
-  several teams" is several rows.
+  Who is in a team, as what (AQ-01 §4.2; PLAN §3.1): a **team lead** or
+  **staff** (`member`). AQ-04A §4.0 removed the manager role: what a manager
+  did is the team lead's in their team and the system admin's anywhere.
 
   One open membership per person per team (partial unique on `left_at IS
   NULL`); leaving sets `left_at` and the row stays. A team keeps at least one
-  lead or manager while it has members — a guard in `Core.Organisation`.
+  lead while it has members — a guard in `Core.Organisation`.
   """
 
   def change do
@@ -21,7 +21,7 @@ defmodule Data.Repo.Migrations.CreateTeamMembers do
       add(:left_at, :timestamptz)
     end
 
-    create(constraint(:team_members, :role_known, check: "role IN ('manager','lead','member')"))
+    create(constraint(:team_members, :role_known, check: "role IN ('lead','member')"))
 
     create(
       unique_index(:team_members, [:team_id, :user_id],

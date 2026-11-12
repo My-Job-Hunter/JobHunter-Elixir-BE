@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateOrganisationSettings do
   use Ecto.Migration
 
   @moduledoc """
-  The prototype's timings as data (JH-01 §4.2; PLAN §6.7, §6.8, §10.5), 1:1
+  The prototype's timings as data (AQ-01 §4.2; PLAN §6.7, §6.8, §10.5), 1:1
   with the organisation. Code defaults when no row; every value is checked
   into 1–365 days.
   """

@@ -2,9 +2,9 @@ defmodule Data.Repo.Migrations.CreateOrganisations do
   use Ecto.Migration
 
   @moduledoc """
-  The organisation (JH-01 §4.2): one today (PLAN Q1), and every business row
+  The organisation (AQ-01 §4.2): one today (PLAN Q1), and every business row
   carries its id. `timezone` is the day boundary; `currency_code` is for
-  reporting. Made by `mix jh.bootstrap`, never by a seed.
+  reporting. Made by `mix aq.bootstrap`, never by a seed.
   """
 
   def change do

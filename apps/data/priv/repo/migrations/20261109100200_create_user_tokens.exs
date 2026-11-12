@@ -2,13 +2,16 @@ defmodule Data.Repo.Migrations.CreateUserTokens do
   use Ecto.Migration
 
   @moduledoc """
-  The one-time links an account is recovered and proved with (JH-01 §4.1):
+  The one-time links an account is recovered and proved with (AQ-01 §4.1):
   reset a password, confirm an address, change an address.
 
   **A digest, never the token.** The plaintext exists once, in the mail; the
   row holds its SHA-256. A lookup by digest is also the comparison, so there
   is no timing to leak. `new_email` only for a change (CHECK). A reset lives
   an hour, a confirmation or change a day — the context's numbers.
+
+  AQ-05 §5.4 (QP5-4): `connect_extension`, the one-time code the console
+  hands the extension; two minutes, one use.
   """
 
   def change do
@@ -29,7 +32,7 @@ defmodule Data.Repo.Migrations.CreateUserTokens do
 
     create(
       constraint(:user_tokens, :purpose_known,
-        check: "purpose IN ('reset_password','confirm_email','change_email')"
+        check: "purpose IN ('reset_password','confirm_email','change_email','connect_extension')"
       )
     )
 

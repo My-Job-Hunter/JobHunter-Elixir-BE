@@ -1,0 +1,307 @@
+{
+  "site": "linkedin",
+  "contract": 1,
+  "pages": {
+    "job": {
+      "url": ["/jobs/view/", "currentJobId="],
+      "ready": [
+        ".job-details-jobs-unified-top-card__job-title",
+        ".jobs-unified-top-card__job-title",
+        ".jobs-details__main-content h1",
+        ".top-card-layout__title",
+        "[data-view-name='job-details'] h1",
+        ".jobs-search__job-details--wrapper h1"
+      ]
+    },
+    "search": {
+      "url": ["/jobs/search", "/jobs/collections"],
+      "ready": [".jobs-search-results-list", ".scaffold-layout__list", "[data-view-name='job-search-results']"]
+    },
+    "thread": {
+      "url": ["re:^/messaging/thread/(?!new(?:/|$))([^/?#]+)"],
+      "ready": [
+        ".msg-s-message-list-content",
+        ".msg-s-message-list",
+        ".msg-thread",
+        "[data-view-name='message-list']",
+        "main .msg-convo-wrapper"
+      ]
+    }
+  },
+  "fields": {
+    "title": {
+      "on": "job",
+      "css": [
+        ".job-details-jobs-unified-top-card__job-title h1",
+        ".job-details-jobs-unified-top-card__job-title",
+        ".jobs-unified-top-card__job-title",
+        ".top-card-layout__title",
+        "[data-view-name='job-details'] h1",
+        ".jobs-details__main-content h1"
+      ],
+      "read": "text",
+      "required": true
+    },
+    "company_name": {
+      "on": "job",
+      "css": [
+        ".job-details-jobs-unified-top-card__company-name a",
+        ".job-details-jobs-unified-top-card__company-name",
+        ".jobs-unified-top-card__company-name a",
+        ".jobs-unified-top-card__company-name",
+        ".topcard__org-name-link",
+        ".jobs-company__box .jobs-company__name"
+      ],
+      "read": "text",
+      "required": true
+    },
+    "company_url": {
+      "on": "job",
+      "css": [
+        ".job-details-jobs-unified-top-card__company-name a[href*='/company/']",
+        ".jobs-unified-top-card__company-name a[href*='/company/']",
+        "a.topcard__org-name-link[href*='/company/']",
+        ".jobs-company__box a[href*='/company/']"
+      ],
+      "read": "href",
+      "required": false
+    },
+    "location_text": {
+      "on": "job",
+      "css": [
+        ".job-details-jobs-unified-top-card__tertiary-description-container span.tvm__text:first-child",
+        ".job-details-jobs-unified-top-card__primary-description-container span.tvm__text:first-child",
+        ".job-details-jobs-unified-top-card__bullet",
+        ".jobs-unified-top-card__bullet",
+        ".topcard__flavor--bullet",
+        "[data-view-name='job-details'] .job-details-location"
+      ],
+      "read": "text",
+      "required": true
+    },
+    "workplace_text": {
+      "on": "job",
+      "css": [
+        ".job-details-fit-level-preferences button:nth-of-type(1) strong",
+        ".job-details-preferences-and-skills__pill:nth-of-type(1)",
+        ".jobs-unified-top-card__workplace-type",
+        ".job-details-jobs-unified-top-card__workplace-type",
+        "li.job-details-jobs-unified-top-card__job-insight span[aria-hidden='true']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "employment_text": {
+      "on": "job",
+      "css": [
+        ".job-details-fit-level-preferences button:nth-of-type(2) strong",
+        ".job-details-preferences-and-skills__pill:nth-of-type(2)",
+        ".job-details-jobs-unified-top-card__job-insight--highlight span[aria-hidden='true']",
+        ".description__job-criteria-list li:nth-child(2) .description__job-criteria-text"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "seniority_text": {
+      "on": "job",
+      "css": [
+        ".job-details-fit-level-preferences button:nth-of-type(3) strong",
+        ".job-details-preferences-and-skills__pill:nth-of-type(3)",
+        ".description__job-criteria-list li:nth-child(1) .description__job-criteria-text",
+        ".jobs-unified-top-card__job-insight span.jobs-unified-top-card__job-insight-view-model-secondary"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "salary_text": {
+      "on": "job",
+      "css": [
+        "#SALARY .jobs-details__salary-main-rail-card",
+        ".jobs-details__salary-main-rail-card",
+        ".job-details-fit-level-preferences button.salary-button strong",
+        ".compensation__salary",
+        ".salary.compensation__salary"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "posted_text": {
+      "on": "job",
+      "css": [
+        ".job-details-jobs-unified-top-card__tertiary-description-container span.tvm__text:nth-child(3)",
+        ".job-details-jobs-unified-top-card__primary-description-container span.tvm__text:nth-child(3)",
+        ".jobs-unified-top-card__posted-date",
+        ".posted-time-ago__text",
+        "[data-view-name='job-details'] .job-details-posted"
+      ],
+      "read": "text",
+      "required": true
+    },
+    "applicants_text": {
+      "on": "job",
+      "css": [
+        ".job-details-jobs-unified-top-card__tertiary-description-container span.tvm__text:nth-child(5)",
+        ".job-details-jobs-unified-top-card__primary-description-container span.tvm__text:nth-child(5)",
+        ".jobs-unified-top-card__applicant-count",
+        ".num-applicants__caption"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "apply_url": {
+      "on": "job",
+      "css": [
+        ".jobs-apply-button--top-card a[href]",
+        "a.jobs-apply-button[href]",
+        ".jobs-s-apply a[href]",
+        "a.apply-button[href]"
+      ],
+      "read": "href",
+      "required": false
+    },
+    "skills_text": {
+      "on": "job",
+      "css": [
+        ".job-details-skill-match-status-list__skill",
+        ".job-details-how-you-match__skills-item-subtitle",
+        ".job-details-preferences-and-skills__skill"
+      ],
+      "read": "text",
+      "required": false,
+      "all": true
+    },
+    "description_html": {
+      "on": "job",
+      "css": [
+        "#job-details",
+        ".jobs-description__content .jobs-box__html-content",
+        ".jobs-description-content__text",
+        ".show-more-less-html__markup",
+        "[data-view-name='job-details'] .jobs-description__container"
+      ],
+      "read": "html",
+      "required": true
+    },
+    "is_promoted": {
+      "on": "job",
+      "css": [
+        ".job-details-jobs-unified-top-card__primary-description-container .tvm__text--promoted",
+        ".jobs-unified-top-card__promoted-by-hirer",
+        "[data-view-name='job-details'] [data-promoted='true']"
+      ],
+      "read": "present",
+      "required": false
+    },
+    "hiring_team_text": {
+      "on": "job",
+      "css": [
+        ".job-details-people-who-can-help__section--two-pane .hirer-card__hirer-information",
+        ".hirer-card__hirer-information",
+        ".jobs-poster__name",
+        ".message-the-recruiter .base-main-card__title"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "other_profile_url": {
+      "on": "thread",
+      "css": [
+        ".msg-thread__link-to-profile[href*='/in/']",
+        ".msg-title-bar a[href*='/in/']",
+        ".msg-s-profile-card a[href*='/in/']",
+        ".msg-entity-lockup a[href*='/in/']",
+        "[data-view-name='message-thread-header'] a[href*='/in/']"
+      ],
+      "read": "href",
+      "required": true
+    },
+    "other_name": {
+      "on": "thread",
+      "css": [
+        ".msg-title-bar .msg-entity-lockup__entity-title",
+        ".msg-thread__link-to-profile .msg-entity-lockup__entity-title",
+        ".msg-entity-lockup__entity-title",
+        ".msg-s-profile-card .profile-card-one-to-one__profile-link",
+        ".msg-title-bar h2",
+        "[data-view-name='message-thread-header'] h2"
+      ],
+      "read": "text",
+      "required": true
+    },
+    "messages": {
+      "on": "thread",
+      "css": [
+        ".msg-s-message-list-content > li.msg-s-message-list__event",
+        "li.msg-s-message-list__event",
+        ".msg-s-message-list li",
+        "[data-view-name='message-list'] li"
+      ],
+      "read": "present",
+      "required": true,
+      "all": true
+    },
+    "messages.external_id": {
+      "on": "thread",
+      "css": ["[data-event-urn]", ".msg-s-event-listitem[data-event-urn]"],
+      "read": "attr:data-event-urn",
+      "required": false
+    },
+    "messages.side": {
+      "on": "thread",
+      "css": [
+        ".msg-s-event-listitem--other",
+        ".msg-s-message-group--other",
+        "[data-view-name='message-other']"
+      ],
+      "read": "present",
+      "required": true
+    },
+    "messages.sent_text": {
+      "on": "thread",
+      "css": [
+        "time.msg-s-message-list__time-heading, time.msg-s-message-group__timestamp",
+        ".msg-s-message-list__time-heading, .msg-s-message-group__timestamp",
+        "time"
+      ],
+      "read": "text",
+      "required": true,
+      "all": true
+    },
+    "messages.text": {
+      "on": "thread",
+      "css": [
+        ".msg-s-event-listitem__body",
+        "p.msg-s-event-listitem__body",
+        ".msg-s-event__content",
+        "[data-view-name='message-body']"
+      ],
+      "read": "text",
+      "required": true
+    }
+  },
+  "identity": {
+    "css": [
+      ".global-nav__me-content a[href*='/in/']",
+      "#global-nav a.global-nav__secondary-link[href*='/in/']",
+      ".feed-identity-module__actor-meta a[href*='/in/']",
+      ".scaffold-layout__sidebar .profile-card a[href*='/in/']",
+      "a.profile-card-profile-link[href*='/in/']",
+      "[data-view-name='identity-module'] a[href*='/in/']"
+    ],
+    "read": "href"
+  },
+  "apply": {
+    "on": "job",
+    "easy_css": [
+      ".jobs-apply-button--top-card button[aria-label*='Easy Apply']",
+      "button.jobs-apply-button[aria-label*='Easy Apply']",
+      ".jobs-s-apply button[aria-label*='Easy Apply']"
+    ],
+    "external_css": [
+      ".jobs-apply-button--top-card button[role='link']",
+      "button.jobs-apply-button[role='link']",
+      ".jobs-apply-button--top-card a[href]",
+      "a.jobs-apply-button[href]"
+    ]
+  }
+}

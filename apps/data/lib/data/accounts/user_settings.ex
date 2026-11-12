@@ -1,6 +1,6 @@
 defmodule Data.Accounts.UserSettings do
   @moduledoc """
-  A person's settings, 1:1 with their account (JH-01 §4.1): the theme, quiet
+  A person's settings, 1:1 with their account (AQ-01 §4.1): the theme, quiet
   hours (both null = off) and the daily digest. `defaults/1` is what a reader
   gets when no row exists yet.
   """

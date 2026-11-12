@@ -1,7 +1,7 @@
 defmodule Api.ConnCase do
   @moduledoc """
   Test case for anything that goes through the endpoint (copied from
-  AutoCare).
+  mCart).
 
   `authed_conn/2` builds a real signed request rather than stubbing the
   assigns — an auth test that skips the pipeline proves nothing about the

@@ -1,6 +1,6 @@
 defmodule ApiClient.CustomerController do
   @moduledoc """
-  The customer's own record and "who serves me" (JH-01 §6.3). The customer
+  The customer's own record and "who serves me" (AQ-01 §6.3). The customer
   comes from `conn.assigns.scope` (`ApiClient.Plugs.CustomerScope`), never
   from params.
   """

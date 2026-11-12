@@ -1,14 +1,17 @@
 defmodule Core.Media do
   @moduledoc """
-  The three-step upload (JH-01 §4.1, AutoCare's): **reserve** a row
+  The three-step upload (AQ-01 §4.1, mCart's): **reserve** a row
   (`POST /media`), **store** the bytes (`PUT /media/:id/blob`, sniffed against
   the allowlist and the declared type, capped per kind), **confirm**
   (`POST /media/:id/confirm`, marks `uploaded_at`). A file is read with a
   link signed for an hour (`GET /media/:id?t=`), never by path alone.
 
   Allowlist (QP1-3): JPEG, PNG, WebP for a photo; PDF, DOCX, text, markdown
-  for a document; any of them for an attachment. 5 MB for a photo, 10 MB
-  otherwise. Unconfirmed rows older than a day are swept (`sweep_unconfirmed/1`).
+  for a document; any of them for an attachment; AQ-06 §11.6 an email
+  (`message/rfc822`) for an `eml`, read by `POST /eml`. 5 MB for a photo
+  or an email, 10 MB otherwise. Unconfirmed rows older than a day are
+  swept (`sweep_unconfirmed/1`). An email's attachments are stored with
+  `store_attachment/4`, sniffed against the same allowlist.
   """
 
   alias Core.Storage
@@ -30,6 +33,7 @@ defmodule Core.Media do
   def allowed_types(:photo), do: @photo_types
   def allowed_types(:document), do: @document_types
   def allowed_types(:attachment), do: @photo_types ++ @document_types
+  def allowed_types(:eml), do: ["message/rfc822"]
 
   @doc "Step 1: reserves the row and says where to send the bytes. `path` is the caller's `/media` route."
   @spec create(Scope.t(), map(), String.t()) ::
@@ -111,6 +115,41 @@ defmodule Core.Media do
     end
   end
 
+  @doc """
+  An email's attachment kept (AQ-06 §7.1): its bytes sniffed (never the
+  part's declared type), on the attachment allowlist and under its cap,
+  stored and confirmed at once as the caller's `attachment`. Answers the
+  row, or why it was not kept.
+  """
+  @spec store_attachment(Scope.t(), binary(), String.t() | nil, DateTime.t()) ::
+          {:ok, Media.t()} | {:error, term()}
+  def store_attachment(%Scope{} = scope, bytes, filename, %DateTime{} = now)
+      when is_binary(bytes) do
+    type = Content.detect(bytes)
+
+    with true <- (type && type in allowed_types(:attachment)) || {:error, :file_type_not_allowed},
+         :ok <- within(byte_size(bytes), :attachment),
+         key = Storage.key_for(type),
+         :ok <- Storage.put(key, bytes),
+         {:ok, media} <-
+           Files.create(%{
+             organisation_id: Scope.organisation_id(scope),
+             owner_user_id: Scope.user_id(scope),
+             media_kind: :attachment,
+             storage_key: key,
+             content_type: type,
+             byte_count: byte_size(bytes),
+             original_filename: blank(filename)
+           }),
+         {:ok, media} <-
+           Files.mark_stored(media, %{
+             sha256: :crypto.hash(:sha256, bytes),
+             byte_count: byte_size(bytes)
+           }) do
+      Files.mark_uploaded(media, %{}, now)
+    end
+  end
+
   @doc "The link a view hands out: the file's path with a token good for an hour, relative to the API prefix."
   @spec link(binary()) :: String.t()
   def link(id), do: "/media/#{id}?t=#{Plug.Crypto.sign(secret(), @salt, id)}"
@@ -147,7 +186,7 @@ defmodule Core.Media do
 
   # ── Checks ──────────────────────────────────────────────────────────────────
 
-  defp kind(kind) when kind in ~w(photo document attachment),
+  defp kind(kind) when kind in ~w(photo document attachment eml),
     do: {:ok, String.to_existing_atom(kind)}
 
   defp kind(_other), do: {:error, {:missing, :media_kind}}

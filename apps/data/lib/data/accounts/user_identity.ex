@@ -1,6 +1,6 @@
 defmodule Data.Accounts.UserIdentity do
   @moduledoc """
-  An account's link to an outside sign-in (JH-01 §4.1): Google, keyed by its
+  An account's link to an outside sign-in (AQ-01 §4.1): Google, keyed by its
   stable `sub`, never by the address.
   """
 

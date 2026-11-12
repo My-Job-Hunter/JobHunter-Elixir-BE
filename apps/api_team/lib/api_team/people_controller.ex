@@ -1,5 +1,5 @@
 defmodule ApiTeam.PeopleController do
-  @moduledoc "The staff list, and suspending an account (JH-01 §6.2, QP1-10)."
+  @moduledoc "The staff list, and suspending an account (AQ-01 §6.2, QP1-10)."
 
   use Phoenix.Controller, formats: [:json]
 

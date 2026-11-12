@@ -25,7 +25,8 @@ defmodule Notifire.MixProject do
 
   def application do
     [
-      extra_applications: [:logger],
+      # `:crypto` and `:public_key` sign and encrypt Web Push (AQ-08 §7.6).
+      extra_applications: [:logger, :crypto, :public_key],
       mod: {Notifire.Application, []}
     ]
   end

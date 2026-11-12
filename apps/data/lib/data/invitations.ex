@@ -1,6 +1,6 @@
 defmodule Data.Invitations do
   @moduledoc """
-  The front door's rows (JH-01 §3, §4.2). Storage only; the lifetimes, the
+  The front door's rows (AQ-01 §3, §4.2). Storage only; the lifetimes, the
   states and who may invite whom are `Core.Organisation.Invitations`'s.
 
   A customer invitation is answered with its customer and the customer's

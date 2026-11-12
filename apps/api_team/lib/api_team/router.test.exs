@@ -36,10 +36,30 @@ defmodule ApiTeam.RouterTest do
   test "every console route of §6.2 exists and is authenticated" do
     for {method, path} <- [
           {"GET", "/v1/org"},
+          {"GET", "/v1/leads/board"},
+          {"POST", "/v1/leads"},
+          {"GET", "/v1/leads/l"},
+          {"PATCH", "/v1/leads/l"},
+          {"POST", "/v1/leads/l/apply"},
+          {"POST", "/v1/leads/l/apply-again"},
+          {"POST", "/v1/leads/l/move"},
+          {"POST", "/v1/leads/l/hold"},
+          {"POST", "/v1/leads/l/resume"},
+          {"POST", "/v1/leads/l/finish"},
+          {"POST", "/v1/leads/l/reopen"},
+          {"POST", "/v1/leads/l/archive"},
+          {"POST", "/v1/leads/l/unarchive"},
+          {"POST", "/v1/leads/l/pin"},
+          {"POST", "/v1/leads/l/unpin"},
+          {"POST", "/v1/leads/l/assign"},
+          {"POST", "/v1/leads/l/cv"},
+          {"POST", "/v1/leads/l/pipeline"},
+          {"POST", "/v1/leads/l/share-links"},
+          {"GET", "/v1/leads/l/share-links"},
+          {"GET", "/v1/pipelines"},
+          {"GET", "/v1/pipelines/employment"},
+          {"PUT", "/v1/pipelines/employment"},
           {"PUT", "/v1/org/settings"},
-          {"GET", "/v1/org/admins"},
-          {"POST", "/v1/org/admins"},
-          {"DELETE", "/v1/org/admins/u"},
           {"GET", "/v1/org/audit"},
           {"GET", "/v1/teams"},
           {"POST", "/v1/teams"},
@@ -92,22 +112,114 @@ defmodule ApiTeam.RouterTest do
           {"GET", "/v1/me"},
           {"POST", "/v1/auth/logout"}
         ] do
-      assert :jh_authenticated in pipes(method, path),
-             "#{method} #{path} is not behind :jh_authenticated"
+      assert :aq_authenticated in pipes(method, path),
+             "#{method} #{path} is not behind :aq_authenticated"
 
       conn = call(String.downcase(method) |> String.to_atom(), path)
       assert conn.status == 401, "#{method} #{path} without a token answered #{conn.status}"
     end
   end
 
+  test "every board route of AQ-02 §7.1 and §7.2 exists and is authenticated" do
+    for {method, path} <- [
+          {"GET", "/v1/notifications"},
+          {"GET", "/v1/notifications/count"},
+          {"GET", "/v1/notifications/groups"},
+          {"POST", "/v1/notifications/n/read"},
+          {"POST", "/v1/notifications/read-all"},
+          {"GET", "/v1/board"},
+          {"GET", "/v1/tasks/search"},
+          {"POST", "/v1/tasks"},
+          {"GET", "/v1/tasks/t"},
+          {"PATCH", "/v1/tasks/t"},
+          {"DELETE", "/v1/tasks/t"},
+          {"POST", "/v1/tasks/t/start"},
+          {"POST", "/v1/tasks/t/move"},
+          {"POST", "/v1/tasks/t/hold"},
+          {"POST", "/v1/tasks/t/resume"},
+          {"POST", "/v1/tasks/t/done"},
+          {"POST", "/v1/tasks/t/reopen"},
+          {"POST", "/v1/tasks/t/close"},
+          {"POST", "/v1/tasks/t/archive"},
+          {"POST", "/v1/tasks/t/unarchive"},
+          {"PUT", "/v1/tasks/t/assignees"},
+          {"POST", "/v1/tasks/t/watch"},
+          {"POST", "/v1/tasks/t/mute"},
+          {"GET", "/v1/tasks/t/history"},
+          {"POST", "/v1/tasks/t/checklist"},
+          {"PATCH", "/v1/tasks/t/checklist/i"},
+          {"POST", "/v1/tasks/t/checklist/i/toggle"},
+          {"DELETE", "/v1/tasks/t/checklist/i"},
+          {"PUT", "/v1/tasks/t/checklist/order"},
+          {"POST", "/v1/tasks/t/steps"},
+          {"PATCH", "/v1/tasks/t/steps/s"},
+          {"POST", "/v1/tasks/t/steps/s/toggle"},
+          {"POST", "/v1/tasks/t/steps/s/nudge"},
+          {"DELETE", "/v1/tasks/t/steps/s"},
+          {"PUT", "/v1/tasks/t/steps/order"},
+          {"POST", "/v1/tasks/t/links"},
+          {"DELETE", "/v1/tasks/t/links/l"},
+          {"POST", "/v1/tasks/t/relations"},
+          {"DELETE", "/v1/tasks/t/relations/r"},
+          {"POST", "/v1/tasks/t/files"},
+          {"DELETE", "/v1/tasks/t/files/m"},
+          {"GET", "/v1/tasks/t/comments"},
+          {"POST", "/v1/tasks/t/comments"},
+          {"POST", "/v1/tasks/t/comments/c/replies"},
+          {"PATCH", "/v1/task-comments/c"},
+          {"DELETE", "/v1/task-comments/c"},
+          {"PATCH", "/v1/task-replies/r"},
+          {"DELETE", "/v1/task-replies/r"},
+          {"GET", "/v1/me/stages"},
+          {"POST", "/v1/me/stages"},
+          {"PATCH", "/v1/me/stages/s"},
+          {"DELETE", "/v1/me/stages/s"},
+          {"PUT", "/v1/me/stages/order"}
+        ] do
+      assert :aq_authenticated in pipes(method, path), "#{method} #{path} is not authenticated"
+      conn = call(String.downcase(method) |> String.to_atom(), path)
+      assert conn.status == 401, "#{method} #{path} without a token answered #{conn.status}"
+    end
+
+    assert %{plug_opts: :search} =
+             Phoenix.Router.route_info(Router, "GET", "/v1/tasks/search", "localhost")
+  end
+
+  test "every job pool route of AQ-03 §7 exists and is authenticated" do
+    for {method, path} <- [
+          {"GET", "/v1/jobs"},
+          {"POST", "/v1/jobs/check"},
+          {"POST", "/v1/jobs"},
+          {"GET", "/v1/jobs/j"},
+          {"PATCH", "/v1/jobs/j"},
+          {"PUT", "/v1/jobs/j/platform-details"},
+          {"POST", "/v1/jobs/j/close"},
+          {"POST", "/v1/jobs/j/reopen"},
+          {"POST", "/v1/jobs/j/archive"},
+          {"POST", "/v1/jobs/j/unarchive"},
+          {"POST", "/v1/jobs/j/merge"},
+          {"GET", "/v1/jobs/j/suggestions"},
+          {"POST", "/v1/jobs/j/dismissals"},
+          {"DELETE", "/v1/jobs/j/dismissals/p"},
+          {"GET", "/v1/companies"},
+          {"POST", "/v1/companies"},
+          {"GET", "/v1/companies/c"},
+          {"PATCH", "/v1/companies/c"}
+        ] do
+      assert :aq_authenticated in pipes(method, path), "#{method} #{path} is not authenticated"
+      conn = call(String.downcase(method) |> String.to_atom(), path)
+      assert conn.status == 401, "#{method} #{path} without a token answered #{conn.status}"
+    end
+  end
+
   test "the rate limits of §6 are wired on their routes" do
-    assert :jh_login_limit in pipes("POST", "/v1/auth/login")
-    assert :jh_login_limit in pipes("POST", "/v1/auth/google")
-    assert :jh_forgot_limit in pipes("POST", "/v1/auth/password/forgot")
-    assert :jh_invitation_limit in pipes("GET", "/v1/auth/invitations/XX-XXXX")
-    assert :jh_invitation_limit in pipes("POST", "/v1/auth/invitations/XX-XXXX/accept")
-    assert :jh_maybe_authenticated in pipes("POST", "/v1/auth/invitations/XX-XXXX/accept")
-    refute :jh_login_limit in pipes("POST", "/v1/auth/refresh")
+    assert :aq_login_limit in pipes("POST", "/v1/auth/login")
+    assert :aq_login_limit in pipes("POST", "/v1/auth/google")
+    assert :aq_forgot_limit in pipes("POST", "/v1/auth/password/forgot")
+    assert :aq_invitation_limit in pipes("GET", "/v1/auth/invitations/XX-XXXX")
+    assert :aq_invitation_limit in pipes("POST", "/v1/auth/invitations/XX-XXXX/accept")
+    assert :aq_maybe_authenticated in pipes("POST", "/v1/auth/invitations/XX-XXXX/accept")
+    refute :aq_login_limit in pipes("POST", "/v1/auth/refresh")
   end
 end
 

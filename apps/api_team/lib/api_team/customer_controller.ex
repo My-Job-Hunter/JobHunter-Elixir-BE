@@ -1,5 +1,5 @@
 defmodule ApiTeam.CustomerController do
-  @moduledoc "Customers, their teams, their portal invitation and their notes (JH-01 §6.2)."
+  @moduledoc "Customers, their teams, their portal invitation and their notes (AQ-01 §6.2)."
 
   use Phoenix.Controller, formats: [:json]
 
@@ -80,5 +80,13 @@ defmodule ApiTeam.CustomerController do
   def delete_note(conn, %{"id" => id}) do
     with :ok <- Notes.delete(conn.assigns.scope, id, Clock.now()),
          do: send_resp(conn, :no_content, "")
+  end
+
+  # AQ-04B QP4b-22: Customer › Activity, the system admin's and a team lead's.
+  def activity(conn, %{"id" => id} = params) do
+    with {:ok, events, next_cursor} <-
+           Core.Organisation.customer_activity(conn.assigns.scope, id, Map.delete(params, "id")) do
+      json(conn, ApiTeam.OrgJSON.audit(%{events: events, next_cursor: next_cursor}))
+    end
   end
 end

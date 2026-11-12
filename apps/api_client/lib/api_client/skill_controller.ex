@@ -1,6 +1,6 @@
 defmodule ApiClient.SkillController do
   @moduledoc """
-  The skills vocabulary, read-only (not in JH-01 §6.3, added because the
+  The skills vocabulary, read-only (not in AQ-01 §6.3, added because the
   portal's `PUT /profiles/:id/skills` needs the ids to pick from).
   """
 

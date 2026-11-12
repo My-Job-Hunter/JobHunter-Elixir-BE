@@ -73,6 +73,20 @@ defmodule Data.Accounts.Tokens do
     token |> Ecto.Changeset.change(sent_at: at) |> Repo.update()
   end
 
+  @doc """
+  Consumes one token, if it is still unused: `:ok`, or `:used` when another
+  request spent it first (a connect code works once, AQ-05 §7).
+  """
+  @spec consume_token(UserToken.t(), DateTime.t()) :: :ok | :used
+  def consume_token(%UserToken{id: id}, %DateTime{} = at) do
+    case Repo.update_all(from(t in UserToken, where: t.id == ^id and is_nil(t.used_at)),
+           set: [used_at: at, updated_at: at]
+         ) do
+      {1, _rows} -> :ok
+      {0, _rows} -> :used
+    end
+  end
+
   @doc "Consumes every outstanding token of `purposes` for an account; answers how many."
   @spec consume_tokens(User.t(), [atom()], DateTime.t()) :: non_neg_integer()
   def consume_tokens(%User{} = user, purposes, %DateTime{} = at) do

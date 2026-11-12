@@ -1,6 +1,6 @@
 defmodule Data.Organisations.Organisation do
   @moduledoc """
-  The organisation (JH-01 §4.2): one today, every business row carries its id.
+  The organisation (AQ-01 §4.2): one today, every business row carries its id.
   """
 
   use Data.Schema

@@ -47,8 +47,27 @@ config :core, Oban,
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
     # Workers owned by `notifire` are named here, never in `core`'s code:
     # config is not a dependency, which is what keeps the two siblings apart.
-    # The media sweep (JH-01 §4.1): abandoned uploads older than a day, daily.
-    {Oban.Plugins.Cron, crontab: [{"20 3 * * *", Core.Media.SweepWorker}]}
+    # The media sweep (AQ-01 §4.1): abandoned uploads older than a day, daily.
+    # The due scan (AQ-02 §8, QP2-13): reminders and overdue notices, every
+    # five minutes. The follow-up scan and the three retention sweeps
+    # (AQ-04B §6.2, §7.3, QP4b-2): hourly and idempotent, staggered so the
+    # warning runs before the archive and the archive before the purge. The
+    # extension's misses (AQ-05 §5.2): hourly, forgotten after 30 days.
+    # The delivery sweep (AQ-08 §7.2, PLAN §15.7), `notifire`'s, and the
+    # digest scan (§7.4): every five minutes; the sweep also runs on write.
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"20 3 * * *", Core.Media.SweepWorker},
+       {"*/5 * * * *", Core.Workers.TaskDueScan},
+       {"5 * * * *", Core.Workers.LeadFollowUpScan},
+       {"10 * * * *", Core.Workers.RetentionWarnSweep},
+       {"15 * * * *", Core.Workers.RetentionArchiveSweep},
+       {"20 * * * *", Core.Workers.RetentionPurgeSweep},
+       {"25 * * * *", Core.Extension.MissSweep},
+       {"30 * * * *", Core.Workers.ApprovalExpirySweep},
+       {"*/5 * * * *", Notifire.Workers.DeliveryWorker},
+       {"*/5 * * * *", Core.Workers.DigestScan}
+     ]}
   ]
 
 # **Broadcasts go through the endpoint, not through PubSub by hand.**
@@ -60,7 +79,7 @@ config :core, :endpoint, Api.Endpoint
 # `Core.Accounts.load_user/1` answers `{:error, :not_found}` for an unknown,
 # suspended or deactivated account, so a token it holds stops working.
 config :core, Core.Auth.Guardian,
-  issuer: "job_hunter",
+  issuer: "autoqare",
   user_loader: {Core.Accounts, :load_user},
   # Overridden in runtime.exs for prod — never ship this value.
   secret_key: "dev-only-secret-replace-in-runtime-exs-CHANGE-ME-0123456789abcdef"
@@ -80,13 +99,24 @@ config :core, :mail_workers,
   password_reset: Notifire.Workers.PasswordResetWorker,
   email_change: Notifire.Workers.EmailChangeWorker
 
+# **The delivery seam** (AQ-08 §7.1): when a new notification's push or
+# email is due now, `core` enqueues this worker by name, unique for two
+# seconds, as mCart's `deliver_soon` does. Named here, never in `core`'s code.
+config :core, :delivery_worker, Notifire.Workers.DeliveryWorker
+
+# Web Push (AQ-08 §7.6): sent for real unless a config says otherwise (test
+# only records). No VAPID pair here: dev.exs holds a dev-only one, test.exs
+# its own, runtime.exs reads a release's from the environment. Without a
+# pair push is off and the screens say so.
+config :notifire, push_send: true, push_outbox: false
+
 # Where the links in the mails open: the console and the portal. Both apps
 # read them (`core` for the bootstrap's printed link, `notifire` for the
 # mails), so they sit under both keys from one place.
 app_urls = [console: "http://localhost:5800", portal: "http://localhost:5801"]
 config :core, :app_urls, app_urls
 config :notifire, :app_urls, app_urls
-config :notifire, from_name: "Job Hunter", from_email: "hello@jobhunter.local"
+config :notifire, from_name: "AutoQare", from_email: "hello@autoqare.com"
 
 # *Continue with Google* (QP1-5). No client id until the owner creates one;
 # until then a dev build uses the stand-in (dev.exs: `id_token = "dev:<email>"`).
@@ -102,7 +132,7 @@ config :core, :google,
 config :core, :storage,
   adapter: Core.Storage.Local,
   root: Path.expand("../priv/uploads", __DIR__),
-  max_bytes: [photo: 5_000_000, document: 10_000_000, attachment: 10_000_000]
+  max_bytes: [photo: 5_000_000, document: 10_000_000, attachment: 10_000_000, eml: 5_000_000]
 
 # Swoosh boots with hackney by default and raises without it. Req is the
 # house HTTP client and hackney is deliberately absent.

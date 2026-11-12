@@ -1,6 +1,6 @@
 defmodule Data.Organisations.OrganisationSettings do
   @moduledoc """
-  The prototype's timings as data (JH-01 §4.2), 1:1 with the organisation.
+  The prototype's timings as data (AQ-01 §4.2), 1:1 with the organisation.
   `defaults/1` is what a reader gets when no row exists.
   """
 

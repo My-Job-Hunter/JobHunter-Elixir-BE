@@ -1,5 +1,5 @@
 defmodule ApiTeam.InvitationController do
-  @moduledoc "Invitations, from the staff side (JH-01 §6.2)."
+  @moduledoc "Invitations, from the staff side (AQ-01 §6.2)."
 
   use Phoenix.Controller, formats: [:json]
 

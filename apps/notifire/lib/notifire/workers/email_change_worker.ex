@@ -1,6 +1,6 @@
 defmodule Notifire.Workers.EmailChangeWorker do
   @moduledoc """
-  Sends the link that proves a new address (JH-01 §6.1 `POST /me/email`),
+  Sends the link that proves a new address (AQ-01 §6.1 `POST /me/email`),
   to the **new** address. The token rides in the job's args, as a reset's does.
   """
 

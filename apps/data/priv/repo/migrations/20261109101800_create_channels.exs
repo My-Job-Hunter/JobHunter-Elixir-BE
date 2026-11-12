@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateChannels do
   use Ecto.Migration
 
   @moduledoc """
-  A customer's platform accounts (JH-01 §4.3): the LinkedIn, the Upwork,
+  A customer's platform accounts (AQ-01 §4.3): the LinkedIn, the Upwork,
   the inbox the team works through. A channel belongs to the customer and
   is linked to the profiles that work through it (`profile_channels`).
 
@@ -10,6 +10,11 @@ defmodule Data.Repo.Migrations.CreateChannels do
   `operated_by`; a staff login is a risk the screen names, never a secret
   the database holds. `handle_normalized` (lower, trimmed) carries the
   unique so "Tanweer@X" and "tanweer@x" are one channel.
+
+  **`identity_key`** (AQ-05 §5.4, QP5-8) is the account itself, from
+  `Utils.ChannelKey` (`linkedin:tanweer`, `upwork:~01aa…`; null for an inbox
+  or a site the rules don't know): unique per kind among live channels,
+  because one account belongs to one person, whichever customer typed it.
   """
 
   def change do
@@ -22,6 +27,7 @@ defmodule Data.Repo.Migrations.CreateChannels do
       add(:label, :string)
       add(:handle, :string, null: false)
       add(:handle_normalized, :string, null: false)
+      add(:identity_key, :string)
       add(:operated_by, :string, null: false)
       add(:listens_via, :string, null: false, default: "none")
       add(:inbound_address, :citext)
@@ -61,6 +67,13 @@ defmodule Data.Repo.Migrations.CreateChannels do
       unique_index(:channels, [:customer_id, :kind, :handle_normalized],
         where: "archived_at IS NULL",
         name: :channels_live_handle_index
+      )
+    )
+
+    create(
+      unique_index(:channels, [:kind, :identity_key],
+        where: "archived_at IS NULL AND identity_key IS NOT NULL",
+        name: :channels_live_identity_index
       )
     )
 

@@ -1,6 +1,6 @@
 defmodule Data.Customers.Profile do
   @moduledoc """
-  One way of marketing a customer (JH-01 §4.3; PLAN §4). Two changesets
+  One way of marketing a customer (AQ-01 §4.3; PLAN §4). Two changesets
   because two rights (QP1-7): `pitch_changeset/2` for title, headline and
   summary — a lead's or the customer's — and `facts_changeset/2` for the
   rest, which a member may edit too. `Core.Access` decides which applies;

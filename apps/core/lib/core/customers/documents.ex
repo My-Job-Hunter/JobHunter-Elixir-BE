@@ -1,6 +1,6 @@
 defmodule Core.Customers.Documents do
   @moduledoc """
-  A profile's documents (JH-01 §4.3, §6.2, §6.3). **A CV is one row per
+  A profile's documents (AQ-01 §4.3, §6.2, §6.3). **A CV is one row per
   version**: `new_version/4` makes a row with `version_no + 1` that
   supersedes the given one, and moves the profile's default along when the
   superseded row held it, so a lead that was sent v4 keeps pointing at v4.

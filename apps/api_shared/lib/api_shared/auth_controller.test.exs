@@ -1,6 +1,6 @@
 defmodule ApiShared.AuthControllerTest do
   @moduledoc """
-  Every `/auth` route of JH-01 §6.1: its status and its shape, through the
+  Every `/auth` route of AQ-01 §6.1: its status and its shape, through the
   shared router with a real pipeline. `async: false` for the Google stand-in.
   """
 

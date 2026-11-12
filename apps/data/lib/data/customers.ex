@@ -1,6 +1,6 @@
 defmodule Data.Customers do
   @moduledoc """
-  Customers, the teams that serve them and the staff-only notes (JH-01
+  Customers, the teams that serve them and the staff-only notes (AQ-01
   §4.3). Storage only: who sees which customer is `Core.Access`'s, and
   every verb's rule is `Core.Customers`'s.
 

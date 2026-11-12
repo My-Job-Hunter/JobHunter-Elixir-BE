@@ -43,7 +43,7 @@ defmodule Core.Broadcast do
   are skipped and the socket transport serialises the message once for
   everybody. A raw PubSub publish has no fastlane, so the struct lands in each
   channel process's mailbox and Phoenix routes it through a `handle_out/3`
-  these channels have no reason to define — which in AutoCare crashed every
+  these channels have no reason to define — which in mCart crashed every
   broadcast to a joined client, silently.
 
   Answers `:ok` when no endpoint is configured or loaded (a `core`-only test

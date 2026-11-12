@@ -1,7 +1,12 @@
 defmodule Data.Accounts.UserToken do
   @moduledoc """
-  One outstanding one-time link (JH-01 §4.1): **reset** a password,
+  One outstanding one-time link (AQ-01 §4.1): **reset** a password,
   **confirm** the address the account has, or **change** to a new one.
+
+  AQ-05 §7 (QP5-4) adds **connect** an extension: the console's one-time
+  code, handed to the extension and exchanged for its own tokens; 32
+  URL-safe characters (24 random bytes), since it travels in a message
+  rather than a mail.
 
   **The token is never stored.** The row holds its SHA-256 digest; the only
   copy of the token is the one in the mail. `issue/1` mints it and returns
@@ -14,9 +19,11 @@ defmodule Data.Accounts.UserToken do
 
   @type t :: %__MODULE__{}
 
-  @purposes ~w(reset_password confirm_email change_email)a
-  # 32 bytes of randomness, URL-encoded: guessing is not a strategy.
+  @purposes ~w(reset_password confirm_email change_email connect_extension)a
+  # 32 bytes of randomness, URL-encoded: guessing is not a strategy. A
+  # connect code is 24 (32 characters, AQ-05 §11.4) and lives two minutes.
   @token_bytes 32
+  @connect_bytes 24
 
   schema "user_tokens" do
     field(:purpose, Ecto.Enum, values: @purposes)
@@ -61,7 +68,8 @@ defmodule Data.Accounts.UserToken do
   @doc "A new token and the attributes that store it: `{token, attrs}`."
   @spec issue(map()) :: {String.t(), map()}
   def issue(%{user_id: user_id, purpose: purpose, expires_at: expires_at} = opts) do
-    token = @token_bytes |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)
+    bytes = if purpose == :connect_extension, do: @connect_bytes, else: @token_bytes
+    token = bytes |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)
 
     {token,
      %{

@@ -1,6 +1,6 @@
 defmodule Notifire.Workers.InvitationWorker do
   @moduledoc """
-  Mails one invitation (JH-01 §6.2: *the mail goes out through `notifire`*).
+  Mails one invitation (AQ-01 §6.2: *the mail goes out through `notifire`*).
   Enqueued by `core` through `Core.Mail`, named here only in config. The
   code is in the row, so the job carries only the id; a row that was revoked
   or accepted before delivery is nothing to send.

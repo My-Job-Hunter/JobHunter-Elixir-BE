@@ -1,5 +1,5 @@
 defmodule ApiClient.DocumentController do
-  @moduledoc "The customer's own documents (JH-01 §6.3): upload, new version, default, archive."
+  @moduledoc "The customer's own documents (AQ-01 §6.3): upload, new version, default, archive."
 
   use Phoenix.Controller, formats: [:json]
 

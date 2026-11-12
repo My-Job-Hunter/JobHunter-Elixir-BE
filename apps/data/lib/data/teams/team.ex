@@ -1,5 +1,5 @@
 defmodule Data.Teams.Team do
-  @moduledoc "A team of the organisation (JH-01 §4.2)."
+  @moduledoc "A team of the organisation (AQ-01 §4.2)."
 
   use Data.Schema
 

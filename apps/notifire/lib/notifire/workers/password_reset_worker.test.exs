@@ -20,7 +20,7 @@ defmodule Notifire.Workers.PasswordResetWorkerTest do
              job(%{kind: :password_reset, subject_id: row.id, secret: token})
            ) == :ok
 
-    assert_email_sent(subject: "Reset your Job Hunter password")
+    assert_email_sent(subject: "Reset your AutoQare password")
     assert Repo.get!(Data.Accounts.UserToken, row.id).sent_at
   end
 

@@ -1,13 +1,13 @@
 defmodule Api.Endpoint do
   @moduledoc """
-  The one endpoint, on 4100 (PLAN §15.1), copied from AutoCare's.
+  The one endpoint, on 4100 (PLAN §15.1), copied from mCart's.
 
   Three frontends call it from other origins — the team console (5800), the
   customer portal (5801) and, from P8, the extension — so `CORSPlug` sits
   **before the router**: a preflight never reaches a route. The websocket is
   `/socket`; `Api.UserSocket` refuses every connection until P1 brings auth.
 
-  ## What AutoCare's endpoint has and this one does not
+  ## What mCart's endpoint has and this one does not
 
   - **No `Plug.Static`.** This is a JSON API with no `priv/static`: there are
     no assets, no favicon and no `robots.txt` to serve, and a static plug in

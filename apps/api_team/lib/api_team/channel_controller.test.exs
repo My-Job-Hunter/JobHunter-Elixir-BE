@@ -1,6 +1,8 @@
 defmodule ApiTeam.ChannelControllerTest do
   use ApiTeam.TeamCase, async: true
 
+  alias Core.Customers.Channels
+
   setup do
     org = organisation_fixture()
     backend = team_fixture(org)
@@ -78,5 +80,34 @@ defmodule ApiTeam.ChannelControllerTest do
 
     theirs = channel_fixture(imran)
     assert call(member, :patch, "/v1/channels/#{theirs.id}", %{label: "x"}).status == 404
+  end
+
+  # AQ-05 §8, QP5-8: one account belongs to one person, however it is typed.
+  test "a live channel's account typed again, for anyone, is a 422 on handle", c do
+    conn =
+      call(c.member, :post, "/v1/customers/#{c.tanweer.id}/channels", %{
+        kind: "linkedin",
+        handle: "https://www.linkedin.com/in/tanweer/"
+      })
+
+    assert conn.status == 201
+
+    again =
+      call(c.member, :post, "/v1/customers/#{c.tanweer.id}/channels", %{
+        kind: "linkedin",
+        handle: "linkedin.com/in/Tanweer?trk=x"
+      })
+
+    assert again.status == 422
+    assert %{"handle" => [_message]} = body(again)["error"]["details"]
+
+    # Archived, the account is free again.
+    {:ok, _} =
+      Channels.archive(scope_for(c.member), body(conn)["id"], DateTime.utc_now())
+
+    assert call(c.member, :post, "/v1/customers/#{c.tanweer.id}/channels", %{
+             kind: "linkedin",
+             handle: "linkedin.com/in/Tanweer?trk=x"
+           }).status == 201
   end
 end

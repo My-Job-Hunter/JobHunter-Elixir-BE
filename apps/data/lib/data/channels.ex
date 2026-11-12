@@ -1,6 +1,6 @@
 defmodule Data.Channels do
   @moduledoc """
-  A customer's channels (JH-01 §4.3). Storage only. Every read answers the
+  A customer's channels (AQ-01 §4.3). Storage only. Every read answers the
   channel with its customer (and the customer's `team_ids`), because
   `Core.Access` decides from the customer.
   """
@@ -51,6 +51,32 @@ defmodule Data.Channels do
       select: c.id
     )
     |> Repo.all()
+  end
+
+  @doc """
+  The organisation's live channel whose account is `key` (`Utils.ChannelKey`),
+  with its customer and its profile links, or `nil` (AQ-05 §8).
+  """
+  @spec by_identity(binary(), String.t() | nil) :: Channel.t() | nil
+  def by_identity(_organisation_id, nil), do: nil
+
+  def by_identity(organisation_id, key) when is_binary(key) do
+    from(c in Channel,
+      join: cu in assoc(c, :customer),
+      where:
+        cu.organisation_id == ^organisation_id and c.identity_key == ^key and
+          is_nil(c.archived_at),
+      preload: ^@preload
+    )
+    |> Repo.one()
+    |> fill()
+  end
+
+  @doc "Moves `last_seen_at`: the extension saw the account signed in (AQ-05 §8)."
+  @spec seen(Channel.t(), DateTime.t()) :: :ok
+  def seen(%Channel{id: id}, %DateTime{} = at) do
+    {_n, _rows} = Repo.update_all(from(c in Channel, where: c.id == ^id), set: [last_seen_at: at])
+    :ok
   end
 
   @spec reload(Channel.t()) :: Channel.t()

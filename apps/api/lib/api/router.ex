@@ -27,33 +27,53 @@ defmodule Api.Router do
     plug :accepts, ["json"]
   end
 
-  # Defines `:jh_shared` (no-store) and `:jh_authenticated`, the latter
-  # unused here: no route at the root is signed in.
+  # Defines `:aq_shared` (no-store) and `:aq_authenticated`, the latter
+  # used only by the dev clock's routes (dev servers alone).
   ApiShared.Routes.shared_pipelines()
 
   # **The deploy pipeline's health check, and the only unversioned route**
-  # (copied from AutoCare, whose Jenkins step curls `$SITE/info` on every
+  # (copied from mCart, whose Jenkins step curls `$SITE/info` on every
   # backend it deploys). Serving it at the root keeps that step identical for
   # all of them; a per-app path would put every pipeline in the blast radius
   # of a change here.
   #
   # Unauthenticated for the same reason the controller says: "which build is
-  # on staging?" has to be answerable before you can sign in. `:jh_shared`
+  # on staging?" has to be answerable before you can sign in. `:aq_shared`
   # because an answer that names a build must not be a proxy's cached one.
   scope "/", Api do
-    pipe_through [:api, :jh_shared]
+    pipe_through [:api, :aq_shared]
 
     get "/info", InfoController, :show
   end
 
-  # **The dev mailbox** (JH-01 §3): every mail a dev build sends lands in
+  # **The dev mailbox** (AQ-01 §3): every mail a dev build sends lands in
   # Swoosh's in-memory mailbox, read here. Compiled in only when
   # `config :api, dev_routes: true` (dev.exs), so a release has no such route.
   if Application.compile_env(:api, :dev_routes, false) do
     scope "/dev" do
-      pipe_through [:jh_shared]
+      pipe_through [:aq_shared]
 
       forward "/mailbox", Plug.Swoosh.MailboxPreview
+    end
+
+    # **The push outbox** (AQ-08 QP8-16), beside the mailbox: every push a
+    # dev server sends, kept for a script to read, and emptied.
+    scope "/dev", ApiTeam do
+      pipe_through [:api, :aq_shared]
+
+      get "/push/json", DevController, :push_outbox
+      delete "/push/json", DevController, :clear_push_outbox
+    end
+
+    # **The dev clock** (AQ-04B §7.6, QP4b-1): any signed-in account moves
+    # the whole server's *now*, or runs the sweeps now. Here and nowhere
+    # else, so a release has neither route.
+    scope "/dev", ApiTeam do
+      pipe_through [:api, :aq_shared, :aq_authenticated]
+
+      get "/clock", DevController, :clock
+      post "/clock", DevController, :set_clock
+      post "/sweeps", DevController, :sweeps
     end
   end
 

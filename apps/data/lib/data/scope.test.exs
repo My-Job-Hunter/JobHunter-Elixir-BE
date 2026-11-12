@@ -33,7 +33,7 @@ defmodule Data.ScopeTest do
     assert Scope.team_role(scope, "t9") == nil
     assert Enum.sort(Scope.team_ids(scope)) == ["t1", "t2"]
     assert Scope.any_team?(scope, :lead)
-    refute Scope.any_team?(scope, :manager)
+    assert Scope.any_team?(scope, :member)
     assert Scope.team_ids(%Scope{}) == []
   end
 end

@@ -1,7 +1,8 @@
 defmodule Core.Organisation do
   @moduledoc """
-  The organisation (JH-01 P1.1): bootstrap, its settings, its admins, the
-  staff list and the audit log. Teams are `Core.Organisation.Teams`,
+  The organisation (AQ-01 P1.1; AQ-04A §4.0): bootstrap, its settings
+  (*Settings › System*, the system admin's alone), the handing on of the
+  one system admin (`mix aq.admin`), the staff list and the audit log. Teams are `Core.Organisation.Teams`,
   invitations `Core.Organisation.Invitations`.
 
   Every write records an audit row inside its transaction (`Core.Audit`).
@@ -12,6 +13,7 @@ defmodule Core.Organisation do
   alias Core.Access
   alias Core.Audit
   alias Core.Audit.Labels
+  alias Core.Leads.Pipelines
   alias Core.Organisation.Invitations
   alias Data.Accounts
   alias Data.Organisations
@@ -26,9 +28,12 @@ defmodule Core.Organisation do
   # ── Bootstrap ───────────────────────────────────────────────────────────────
 
   @doc """
-  `mix jh.bootstrap` (§3): the organisation with its default settings and an
+  `mix aq.bootstrap` (§3): the organisation with its default settings and an
   **admin invitation** for the email. Idempotent: run twice, it reports the
-  organisation exists and re-issues the invitation if none is open.
+  organisation exists and re-issues the invitation if none is open. Once the
+  admin invitation is accepted it refuses (`:admin_exists`): the one system
+  admin is handed on with `mix aq.admin --to`. It ensures both default
+  pipelines (AQ-04A §9.1).
 
   Answers `{:ok, %{organisation, invitation, organisation_created?, invitation: :issued | :reissued | :open}}`.
   """
@@ -37,6 +42,12 @@ defmodule Core.Organisation do
     Repo.transaction(fn ->
       {organisation, created?} = find_or_create_organisation(org_name, now)
       scope = Scope.system(organisation)
+
+      # QP4a-21: one system admin. Once somebody holds it, it is handed on
+      # with `mix aq.admin`, never invited again.
+      if Organisations.the_admin(organisation.id), do: Repo.rollback(:admin_exists)
+
+      :ok = Pipelines.ensure(scope, now)
 
       case Invitations.issue(scope, %{kind: :admin, email: email, invited_name: name}, now) do
         {:ok, invitation, status} ->
@@ -77,7 +88,7 @@ defmodule Core.Organisation do
 
   # ── The organisation and its settings ───────────────────────────────────────
 
-  @doc "`GET /org`: the organisation and its timings, for a lead or above."
+  @doc "`GET /org`: the organisation and its timings, for the system admin."
   @spec get(Scope.t()) ::
           {:ok, %{organisation: struct(), settings: OrganisationSettings.t()}} | {:error, term()}
   def get(%Scope{organisation: organisation} = scope) do
@@ -86,7 +97,7 @@ defmodule Core.Organisation do
     end
   end
 
-  @doc "`PUT /org/settings`: the timings, by an admin. Name, timezone and currency ride along."
+  @doc "`PUT /org/settings`: the timings, by the system admin. Name, timezone and currency ride along."
   @spec update_settings(Scope.t(), map()) :: {:ok, map()} | {:error, term()}
   def update_settings(%Scope{organisation: organisation} = scope, params) do
     params = Map.new(params, fn {k, v} -> {to_string(k), v} end)
@@ -131,66 +142,47 @@ defmodule Core.Organisation do
     :ok
   end
 
-  # ── Admins ──────────────────────────────────────────────────────────────────
-
-  @doc "`GET /org/admins`."
-  @spec list_admins(Scope.t()) :: {:ok, [struct()]} | {:error, term()}
-  def list_admins(%Scope{organisation: organisation} = scope) do
-    with :ok <- Access.why_not(scope, :list_admins, {:organisation, organisation}) do
-      {:ok, Organisations.list_admins(organisation.id)}
-    end
-  end
-
-  @doc "`POST /org/admins {user_id}`: makes a staff account an admin."
-  @spec grant_admin(Scope.t(), binary(), DateTime.t()) :: {:ok, struct()} | {:error, term()}
-  def grant_admin(%Scope{organisation: organisation} = scope, user_id, %DateTime{} = now) do
-    with :ok <- Access.why_not(scope, :grant_admin, {:organisation, organisation}),
-         %{} = user <- Accounts.get_user(user_id) || {:error, :not_found},
-         :ok <- not_yet_admin(organisation.id, user.id) do
-      Repo.transaction(fn ->
-        {:ok, admin} =
-          Organisations.grant_admin(%{
-            organisation_id: organisation.id,
-            user_id: user.id,
-            granted_at: now,
-            granted_by_user_id: Scope.user_id(scope)
-          })
-
-        {:ok, _event} =
-          Audit.record(scope, "granted", admin, after: %{user_id: user.id}, now: now)
-
-        %{admin | user: user}
-      end)
-    end
-  end
+  # ── The one system admin (QP4a-21) ──────────────────────────────────────────
 
   @doc """
-  `DELETE /org/admins/:user_id`. **The last admin cannot be removed**
-  (`:last_admin`): "The organisation needs one admin. Grant another first."
+  `mix aq.admin --to <email>`: hands the organisation's one admin row to an
+  existing staff account, audited (`admin_handed`, the before and after
+  holder). No route grants or revokes an admin. Refuses an unknown email
+  (`{:error, :not_found}`), a customer's sign-in, and an organisation whose
+  bootstrap invitation nobody has accepted yet (`{:error, :no_admin}`).
+  Handing it to the holder changes nothing.
   """
-  @spec revoke_admin(Scope.t(), binary(), DateTime.t()) :: :ok | {:error, term()}
-  def revoke_admin(%Scope{organisation: organisation} = scope, user_id, %DateTime{} = now) do
-    with :ok <- Access.why_not(scope, :revoke_admin, {:organisation, organisation}),
-         %{} = admin <- Organisations.get_admin(organisation.id, user_id) || {:error, :not_found},
-         :ok <- not_the_last(organisation.id) do
-      Repo.transaction(fn ->
-        {:ok, _gone} = Organisations.revoke_admin(admin)
+  @spec hand_admin(Scope.t(), String.t(), DateTime.t()) :: {:ok, struct()} | {:error, term()}
+  def hand_admin(%Scope{organisation: organisation} = scope, email, %DateTime{} = now) do
+    email = email |> to_string() |> String.trim() |> String.downcase()
 
-        {:ok, _event} =
-          Audit.record(scope, "revoked", admin, before: %{user_id: user_id}, now: now)
-
-        :ok
-      end)
-      |> elem(1)
+    with %{} = admin <- Organisations.the_admin(organisation.id) || {:error, :no_admin},
+         %{} = user <- Accounts.get_user_by_email(email) || {:error, :not_found},
+         :ok <- staff_account(user) do
+      hand_once(scope, admin, user, now)
     end
   end
 
-  defp not_yet_admin(organisation_id, user_id) do
-    if Organisations.get_admin(organisation_id, user_id), do: {:error, :conflict}, else: :ok
+  defp hand_once(_scope, %{user_id: id} = admin, %{id: id}, _now), do: {:ok, admin}
+
+  defp hand_once(scope, admin, user, now),
+    do: Repo.transaction(fn -> hand(scope, admin, user, now) end)
+
+  defp staff_account(user) do
+    if Data.Customers.get_by_user(user.id), do: {:error, :customer}, else: :ok
   end
 
-  defp not_the_last(organisation_id) do
-    if Organisations.count_admins(organisation_id) > 1, do: :ok, else: {:error, :last_admin}
+  defp hand(scope, admin, user, now) do
+    {:ok, handed} = Organisations.hand_admin(admin, user.id, now)
+
+    {:ok, _event} =
+      Audit.record(scope, "admin_handed", handed,
+        before: %{user_id: admin.user_id},
+        after: %{user_id: user.id},
+        now: now
+      )
+
+    Repo.preload(handed, [user: :person], force: true)
   end
 
   # ── People ──────────────────────────────────────────────────────────────────
@@ -261,13 +253,45 @@ defmodule Core.Organisation do
 
   @doc """
   `GET /org/audit?subject_kind&subject_id&actor&from&to&cursor`, newest first,
-  keyset. An admin reads everything; a manager reads rows about their teams.
+  keyset. The system admin's alone (AQ-04A §8.5).
   Answers `{:ok, events, next_cursor}`.
   """
   @spec list_audit(Scope.t(), map()) :: {:ok, [struct()], String.t() | nil} | {:error, term()}
   def list_audit(%Scope{organisation: organisation} = scope, params \\ %{}) do
     with :ok <- Access.why_not(scope, :read_audit, {:organisation, organisation}),
          {:ok, filters} <- audit_filters(scope, params) do
+      events = Data.Audit.list(organisation.id, filters, @page + 1)
+      {page, more} = Enum.split(events, @page)
+
+      {:ok, Labels.attach(page), if(more == [], do: nil, else: encode_cursor(List.last(page)))}
+    end
+  end
+
+  @doc """
+  `GET /customers/:id/activity?cursor` (AQ-04B QP4b-22): the audit rows
+  about one customer — the customer's own and every row naming them —
+  newest first, keyset. **Every row for the system admin; a team lead, the
+  rows of their teams** (a row naming one of the teams they lead); staff
+  and the customer: not found. Answers `{:ok, events, next_cursor}`, the
+  shape of `GET /org/audit`.
+  """
+  @spec customer_activity(Scope.t(), term(), map()) ::
+          {:ok, [struct()], String.t() | nil} | {:error, term()}
+  def customer_activity(%Scope{organisation: organisation} = scope, customer_id, params \\ %{}) do
+    params = Map.new(params, fn {k, v} -> {to_string(k), v} end)
+
+    with %{} = customer <-
+           Data.Customers.get(organisation.id, customer_id) || {:error, :not_found},
+         :ok <- Access.why_not(scope, :read_activity, {:customer, customer}),
+         {:ok, cursor} <- decode_cursor(params["cursor"]) do
+      led = for {id, :lead} <- scope.roles.teams, do: id
+
+      filters = %{
+        customer_id: customer.id,
+        cursor: cursor,
+        team_ids: if(Scope.admin?(scope), do: nil, else: led)
+      }
+
       events = Data.Audit.list(organisation.id, filters, @page + 1)
       {page, more} = Enum.split(events, @page)
 

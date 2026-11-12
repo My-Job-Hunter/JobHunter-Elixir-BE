@@ -9,7 +9,7 @@ defmodule Utils do
   share one version of each; this module names none of them.
 
   Its helpers arrive with the phases that need them (PLAN §15.1): `JobKey`
-  (a job URL to its canonical key, P3), `Units`, `SafeUrl`.
+  (a job URL to its canonical key, P3), `Units`; `SafeUrl` (P2, a task's links).
   """
 
   @doc """

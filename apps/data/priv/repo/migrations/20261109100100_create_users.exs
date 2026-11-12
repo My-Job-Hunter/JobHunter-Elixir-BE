@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateUsers do
   use Ecto.Migration
 
   @moduledoc """
-  An account: a login for exactly one person (JH-01 §4.1).
+  An account: a login for exactly one person (AQ-01 §4.1).
 
   `email` is citext and unique: case-insensitive without every query
   remembering to downcase. `hashed_password` is null for an account made with

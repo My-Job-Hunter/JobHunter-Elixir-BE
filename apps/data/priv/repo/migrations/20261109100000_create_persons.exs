@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreatePersons do
   use Ecto.Migration
 
   @moduledoc """
-  A human (JH-01 §4.1). **A person is who; a user is a login.** One person may
+  A human (AQ-01 §4.1). **A person is who; a user is a login.** One person may
   later hold two logins (a customer who is also staff: never in P1, kept
   possible), which is why the name, photo, timezone and locale live here and
   not on `users`.
@@ -10,7 +10,7 @@ defmodule Data.Repo.Migrations.CreatePersons do
   The photo is not a column here: `media` points at `users` which points at
   `persons`, so a `photo_media_id` could not carry its foreign key in this
   `create`. It is the link table `person_photos` instead — one link table
-  per owner, the pattern `document_media` uses (JH-01 §4.3).
+  per owner, the pattern `document_media` uses (AQ-01 §4.3).
 
   `timezone` defaults to the organisation's (QP1-2: Asia/Karachi); the code
   copies the organisation's zone in at account creation and the person may

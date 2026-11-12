@@ -103,7 +103,7 @@ defmodule ApiTeam.CustomerControllerTest do
 
     refused = call(member, :post, "/v1/customers/#{customer.id}/status", %{status: "paused"})
     assert refused.status == 403
-    assert body(refused)["error"]["message"] =~ "lead or above"
+    assert body(refused)["error"]["message"] =~ "team lead"
 
     # A lead of Backend cannot assign Frontend (not theirs); an admin can.
     assert call(lead, :post, "/v1/customers/#{customer.id}/teams", %{team_id: frontend.id}).status ==

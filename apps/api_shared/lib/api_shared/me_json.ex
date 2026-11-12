@@ -1,10 +1,14 @@
 defmodule ApiShared.MeJSON do
   @moduledoc """
-  `/me` as JH-01 §6.1 spells it:
+  `/me` as AQ-01 §6.1 spells it:
 
       {user: {id, email, person: {display_name, given_name, family_name, photo_url, timezone, locale_code}},
        roles: {admin, teams: [{team_id, name, role}], customer_id},
-       settings, organisation: {id, name, timezone, currency_code}}
+       settings, organisation: {id, name, timezone, currency_code},
+       teams: [{id, name, role}]}
+
+  `teams` is the switcher's (AQ-03B §5.1): the person's unarchived teams by
+  name; an admin's lists every team, `role: "admin"` where they hold none.
   """
 
   alias Core.Accounts.Device
@@ -17,7 +21,8 @@ defmodule ApiShared.MeJSON do
       user: user(me.user),
       roles: me.roles,
       settings: settings_json(me.settings),
-      organisation: organisation(me.organisation)
+      organisation: organisation(me.organisation),
+      teams: Enum.map(me.teams, &Map.take(&1, [:id, :name, :role]))
     }
   end
 

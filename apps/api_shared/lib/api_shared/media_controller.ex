@@ -1,6 +1,6 @@
 defmodule ApiShared.MediaController do
   @moduledoc """
-  The three-step upload (JH-01 §4.1, §6.1), shared by every app at its own
+  The three-step upload (AQ-01 §4.1, §6.1), shared by every app at its own
   prefix; **never a static plug**, every read goes through here.
 
       1. POST /media                 → the row, with upload: {url, method, headers}

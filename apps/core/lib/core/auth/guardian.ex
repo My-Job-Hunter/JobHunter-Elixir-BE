@@ -1,6 +1,6 @@
 defmodule Core.Auth.Guardian do
   @moduledoc """
-  JWT issuing and verification (copied from AutoCare).
+  JWT issuing and verification (copied from mCart).
 
   Access tokens last an hour, refresh tokens a week. `guardian_db` backs both
   so revocation is real: sign-out-everywhere and removing a person must
@@ -78,11 +78,18 @@ defmodule Core.Auth.Guardian do
   Named `exchange_refresh_token` rather than `refresh` because `use Guardian`
   already defines `refresh/2`, which re-signs an existing token instead of
   issuing a fresh pair.
+
+  `app` is the app the request reached (`"team"`, `"client"`, `"ext"`): **a
+  device's token refreshes only at `/ext`, and no other token there**
+  (AQ-05 §7, `extension_token?/1`), so each stays in its own app.
   """
-  @spec exchange_refresh_token(String.t()) ::
+  @spec exchange_refresh_token(String.t(), String.t() | nil) ::
           {:ok, %{access_token: String.t(), refresh_token: String.t()}} | {:error, atom()}
-  def exchange_refresh_token(refresh_token) when is_binary(refresh_token) do
+  def exchange_refresh_token(refresh_token, app \\ nil)
+
+  def exchange_refresh_token(refresh_token, app) when is_binary(refresh_token) do
     with {:ok, claims} <- decode_and_verify(refresh_token, %{"typ" => "refresh"}),
+         true <- extension_token?(claims) == (app == "ext") || {:error, :wrong_app},
          {:ok, user} <- resource_from_claims(claims),
          {:ok, _claims} <- revoke(refresh_token) do
       tokens_for(user, Map.take(claims, ["sid", "dev"]))
@@ -91,12 +98,21 @@ defmodule Core.Auth.Guardian do
     end
   end
 
-  def exchange_refresh_token(_token), do: {:error, :invalid_refresh_token}
+  def exchange_refresh_token(_token, _app), do: {:error, :invalid_refresh_token}
+
+  @doc """
+  Whether a token's claims are a connected extension's (`dev.app` `ext`,
+  AQ-05 QP5-5): such a token works on `/ext/v1` only, and only such a token
+  works there.
+  """
+  @spec extension_token?(map()) :: boolean()
+  def extension_token?(%{"dev" => %{"app" => "ext"}}), do: true
+  def extension_token?(_claims), do: false
 
   # ─── `guardian_db`'s hooks ──────────────────────────────────────────────────
   #
   # `use Guardian` does not install these, and without them `revoke/1` deletes
-  # nothing and a token stays valid until it expires (AutoCare found this the
+  # nothing and a token stays valid until it expires (mCart found this the
   # hard way, `PA6`). `on_verify` is what makes revocation *take effect*: a
   # token whose row has gone stops verifying, for one indexed read per
   # authenticated request.

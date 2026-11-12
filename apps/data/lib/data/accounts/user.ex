@@ -1,6 +1,6 @@
 defmodule Data.Accounts.User do
   @moduledoc """
-  An account: the login of exactly one person (JH-01 §4.1).
+  An account: the login of exactly one person (AQ-01 §4.1).
 
   Passwords are bcrypt-hashed and the plaintext is `virtual` and `redact`ed,
   so it never reaches a log, an inspect or an error report. `hashed_password`

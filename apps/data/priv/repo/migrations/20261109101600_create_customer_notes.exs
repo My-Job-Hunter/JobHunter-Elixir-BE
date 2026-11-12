@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateCustomerNotes do
   use Ecto.Migration
 
   @moduledoc """
-  Staff-only notes about a customer (JH-01 §4.3): never in the portal. A
+  Staff-only notes about a customer (AQ-01 §4.3): never in the portal. A
   deleted note keeps its row with `deleted_at`, so the audit log's subject
   still resolves.
   """

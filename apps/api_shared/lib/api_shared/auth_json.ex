@@ -1,6 +1,6 @@
 defmodule ApiShared.AuthJSON do
   @moduledoc """
-  The shapes the auth routes answer with (JH-01 §6.1): snake_case, no
+  The shapes the auth routes answer with (AQ-01 §6.1): snake_case, no
   envelope, fields listed one by one — a view that serialises a whole struct
   leaks the next field somebody adds.
   """

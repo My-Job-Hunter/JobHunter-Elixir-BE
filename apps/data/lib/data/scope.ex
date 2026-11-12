@@ -14,7 +14,7 @@ defmodule Data.Scope do
   |---|---|---|
   | `user` | the signed-in account, with its person | `ApiShared.Plugs.Scope`, from the token |
   | `organisation` | the organisation the request acts in (one now, Q1) | `Core.Access.Grants` |
-  | `roles` | `%{admin?: boolean, teams: %{team_id => :manager \\| :lead \\| :member}, customer_id: id \\| nil, team_settings: %{team_id => settings}}` | `Core.Access.Grants` (JH-01 §5.1) |
+  | `roles` | `%{admin?: boolean, teams: %{team_id => :lead \\| :member}, customer_id: id \\| nil, team_settings: %{team_id => settings}}` | `Core.Access.Grants` (AQ-01 §5.1) |
   | `via` | how the request arrived: `:web`, `:extension`, `:task`, `:system` | the plug (`:web`); `system/0` (`:system`) |
   | `request_id` | `Plug.RequestId`'s, for the audit row | the plug |
 
@@ -36,7 +36,7 @@ defmodule Data.Scope do
 
   defstruct user: nil, organisation: nil, roles: nil, via: :web, request_id: nil
 
-  @type team_role :: :manager | :lead | :member
+  @type team_role :: :lead | :member
   @type roles :: %{
           admin?: boolean(),
           teams: %{optional(binary()) => team_role()},
@@ -72,7 +72,7 @@ defmodule Data.Scope do
     do: %__MODULE__{organisation: organisation, roles: no_roles(), via: :system}
 
   @doc """
-  The same scope pinned to its customer (JH-01 §5.1): the staff roles are
+  The same scope pinned to its customer (AQ-01 §5.1): the staff roles are
   dropped, so every portal query binds to `roles.customer_id` and nothing
   else. Answers `nil` for an account that is nobody's customer.
   """
@@ -127,8 +127,8 @@ defmodule Data.Scope do
   def any_team?(%__MODULE__{}, _role), do: false
 
   @doc """
-  The caller's strongest role across `team_ids` (`:manager` > `:lead` >
-  `:member`), or `nil` when they are in none of them.
+  The caller's strongest role across `team_ids` (`:lead` > `:member`), or
+  `nil` when they are in none of them.
   """
   @spec role_in_any(t(), [binary()]) :: team_role() | nil
   def role_in_any(%__MODULE__{} = scope, team_ids) do
@@ -145,7 +145,6 @@ defmodule Data.Scope do
 
   def team_settings(%__MODULE__{}, _team_id), do: nil
 
-  defp rank(:manager), do: 0
-  defp rank(:lead), do: 1
-  defp rank(:member), do: 2
+  defp rank(:lead), do: 0
+  defp rank(:member), do: 1
 end

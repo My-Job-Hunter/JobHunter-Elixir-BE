@@ -26,7 +26,7 @@ erl_crash.dump
 /tmp/
 
 # Ignore package tarball (built via "mix hex.build").
-job_hunter-*.tar
+autoqare-*.tar
 
 # A filled-in copy of sample.env holds real secrets.
 .env

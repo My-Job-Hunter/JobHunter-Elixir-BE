@@ -1,6 +1,6 @@
 defmodule Data.Skills do
   @moduledoc """
-  The skills vocabulary (JH-01 §4.3, QP1-4). Storage only; `Data.Seeds.Skills`
+  The skills vocabulary (AQ-01 §4.3, QP1-4). Storage only; `Data.Seeds.Skills`
   loads the production list through `upsert/1`, staff add through
   `Core.Customers.Skills`.
   """

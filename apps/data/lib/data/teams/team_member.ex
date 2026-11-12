@@ -1,6 +1,6 @@
 defmodule Data.Teams.TeamMember do
   @moduledoc """
-  Who is in a team, as what (JH-01 §4.2). The roles are `Data.Vocabulary`'s
+  Who is in a team, as what (AQ-01 §4.2). The roles are `Data.Vocabulary`'s
   `team_member_roles`, shared with the frontend word for word.
   """
 
@@ -25,9 +25,9 @@ defmodule Data.Teams.TeamMember do
   @doc "The roles, as atoms, strongest first."
   def roles, do: @roles
 
-  @doc "Whether a role may lead a team: a manager or a lead."
+  @doc "Whether a role leads a team (AQ-04A §4.0: the team lead; there is no manager)."
   @spec leads?(atom()) :: boolean()
-  def leads?(role), do: role in [:manager, :lead]
+  def leads?(role), do: role == :lead
 
   def changeset(member, attrs) do
     member

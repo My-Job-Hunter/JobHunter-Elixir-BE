@@ -1,0 +1,476 @@
+{
+  "site": "upwork",
+  "contract": 1,
+  "pages": {
+    "confirmation": {
+      "url": ["re:^/(ab|nx)/proposals/[0-9]+", "re:^/(ab|nx)/proposals/job/~0[0-9a-zA-Z]+/(apply/)?(success|submitted)"],
+      "ready": [
+        "[data-test='proposal-details']",
+        "[data-test='proposal-submitted']",
+        ".fe-proposal-details",
+        "[data-test='proposal-terms']",
+        "main h1"
+      ]
+    },
+    "proposal": {
+      "url": ["/proposals/job/~0", "re:^/(ab|nx)/proposals/job/"],
+      "ready": [
+        "[data-test='proposal-form']",
+        ".fe-proposal-job-details",
+        "#step-rate",
+        "[data-test='bid-input']",
+        "form[name='proposal']"
+      ]
+    },
+    "job": {
+      "url": ["/jobs/~0", "/freelance-jobs/apply/", "/details/~0", "re:^/nx/.*/job/~0"],
+      "ready": [
+        "[data-test='job-details-viewer']",
+        "[data-test='Description']",
+        ".job-details-content",
+        "[data-test='job-description-text']",
+        "section.air3-card-section [data-test='Description']"
+      ]
+    },
+    "search": {
+      "url": ["/nx/search/jobs", "/nx/find-work", "/nx/jobs/search", "/ab/find-work"],
+      "ready": ["[data-test='job-tile-list']", "section.job-tile", "article.job-tile"]
+    },
+    "thread": {
+      "url": [
+        "re:^/ab/messages/rooms/([^/?#]+)",
+        "re:^/nx/messages/rooms/([^/?#]+)",
+        "re:^/nx/messages/(?!rooms(?:/|$))([^/?#]+)"
+      ],
+      "ready": [
+        "[data-test='room-content']",
+        "[data-test='message-list']",
+        ".room-messages",
+        ".up-d-room",
+        "#room-content"
+      ]
+    }
+  },
+  "fields": {
+    "title": {
+      "on": "job",
+      "css": [
+        "[data-test='job-details-viewer'] h4 span.flex-1",
+        "[data-test='job-details-viewer'] h4",
+        ".job-details-content h4",
+        "header h4.m-0",
+        "h1.m-0",
+        "[data-test='job-title']"
+      ],
+      "read": "text",
+      "required": true
+    },
+    "company_name": {
+      "on": "job",
+      "css": [
+        "[data-test='client-company-profile'] [data-test='company-name']",
+        "[data-qa='client-company-name']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "location_text": {
+      "on": "job",
+      "css": [
+        "[data-test='LocationLabel']",
+        "[data-test='job-location']",
+        ".job-details-content [data-test='location-requirement']",
+        "[data-test='job-details-viewer'] .text-light-on-muted.posted-on-line + div"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "employment_text": {
+      "on": "job",
+      "css": [
+        "[data-test='job-type-label']",
+        "[data-test='is-fixed-price']",
+        "[data-test='JobType']",
+        "[data-test='Features'] [data-cy='clock-hourly'] ~ div .description"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "posted_text": {
+      "on": "job",
+      "css": [
+        "[data-test='PostedOn'] span",
+        "[data-test='posted-on']",
+        ".posted-on-line span",
+        "[itemprop='datePosted']",
+        "[data-test='job-details-viewer'] .posted-on-line"
+      ],
+      "read": "text",
+      "required": true
+    },
+    "skills_text": {
+      "on": "job",
+      "css": [
+        "[data-test='Skill'] a",
+        "[data-test='Expertise'] .air3-token",
+        ".skills-list .air3-token",
+        "[data-test='attr-item'] a",
+        "[data-test='token'] span"
+      ],
+      "read": "text",
+      "required": false,
+      "all": true
+    },
+    "description_html": {
+      "on": "job",
+      "css": [
+        "[data-test='Description'] p",
+        "[data-test='Description']",
+        "[data-test='job-description-text']",
+        ".job-description",
+        ".job-details-content .break"
+      ],
+      "read": "html",
+      "required": true
+    },
+    "upwork.budget_text": {
+      "on": "job",
+      "css": [
+        "[data-test='BudgetAmount']",
+        "[data-test='budget']",
+        "[data-test='Features'] [data-cy='fixed-price'] ~ div strong",
+        "[data-test='job-budget']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.rate_text": {
+      "on": "job",
+      "css": [
+        "[data-test='HourlyRate']",
+        "[data-test='Features'] [data-cy='clock-hourly'] ~ div strong",
+        "[data-test='job-type-label']",
+        "[data-test='hourly-rate']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.experience_text": {
+      "on": "job",
+      "css": [
+        "[data-test='ExperienceLevel'] strong",
+        "[data-test='Features'] [data-cy='expertise'] ~ div strong",
+        "[data-test='experience-level']",
+        "[data-test='contractor-tier']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.duration_text": {
+      "on": "job",
+      "css": [
+        "[data-test='Duration'] strong",
+        "[data-test='Features'] [data-cy='duration2'] ~ div strong",
+        "[data-test='duration-label']",
+        "[data-test='duration']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.hours_text": {
+      "on": "job",
+      "css": [
+        "[data-test='HoursNeeded'] strong",
+        "[data-test='Features'] [data-cy='clock-timelog'] ~ div strong",
+        "[data-test='workload']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.connects_text": {
+      "on": "job",
+      "css": [
+        "[data-test='ConnectsDesktop']",
+        "[data-test='connects-auction']",
+        "[data-test='required-connects']",
+        ".connects-required"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.proposals_text": {
+      "on": "job",
+      "css": [
+        "[data-test='ClientActivity'] li:nth-child(1) .value",
+        ".client-activity-items li:nth-child(1) .value",
+        "[data-test='proposals-tier']",
+        "[data-test='proposals']"
+      ],
+      "read": "text",
+      "required": true
+    },
+    "upwork.last_viewed_text": {
+      "on": "job",
+      "css": [
+        "[data-test='ClientActivity'] li:nth-child(2)",
+        ".client-activity-items li:nth-child(2)",
+        "[data-test='client-last-viewed']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.hires_text": {
+      "on": "job",
+      "css": ["[data-test='ClientActivity'] li:nth-child(3)", ".client-activity-items li:nth-child(3)"],
+      "read": "text",
+      "required": false
+    },
+    "upwork.interviewing_text": {
+      "on": "job",
+      "css": [
+        "[data-test='ClientActivity'] li:nth-child(4)",
+        ".client-activity-items li:nth-child(4)",
+        "[data-test='client-interviewing']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.invites_text": {
+      "on": "job",
+      "css": [
+        "[data-test='ClientActivity'] li:nth-child(5)",
+        ".client-activity-items li:nth-child(5)",
+        "[data-test='client-invites-sent']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.unanswered_text": {
+      "on": "job",
+      "css": [
+        "[data-test='ClientActivity'] li:nth-child(6)",
+        ".client-activity-items li:nth-child(6)",
+        "[data-test='client-unanswered-invites']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.client.payment_verified": {
+      "on": "job",
+      "css": [
+        "[data-test='payment-verified']",
+        "[data-test='about-client-container'] .payment-verified",
+        "[data-qa='client-payment-verified']"
+      ],
+      "read": "present",
+      "required": false
+    },
+    "upwork.client.rating_text": {
+      "on": "job",
+      "css": [
+        "[data-testid='buyer-rating'] .air3-rating-value-text",
+        "[data-test='about-client-container'] .air3-rating-value-text",
+        "[data-qa='client-rating']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.client.reviews_text": {
+      "on": "job",
+      "css": [
+        "[data-testid='buyer-rating'] .nowrap",
+        "[data-test='about-client-container'] [data-test='client-reviews']",
+        "[data-qa='client-reviews']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.client.location_text": {
+      "on": "job",
+      "css": [
+        "[data-qa='client-location'] strong",
+        "[data-test='about-client-container'] [data-test='client-country']",
+        "[data-test='client-location']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.client.local_time_text": {
+      "on": "job",
+      "css": [
+        "[data-qa='client-location'] span",
+        "[data-test='client-local-time']",
+        "[data-test='about-client-container'] [data-test='local-time']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "upwork.client.jobs_posted_text": {
+      "on": "job",
+      "css": ["[data-qa='client-job-posting-stats'] strong", "[data-test='client-jobs-posted']"],
+      "read": "text",
+      "required": false
+    },
+    "upwork.client.hire_rate_text": {
+      "on": "job",
+      "css": ["[data-qa='client-job-posting-stats'] div", "[data-test='client-hire-rate']"],
+      "read": "text",
+      "required": false
+    },
+    "upwork.client.open_jobs_text": {
+      "on": "job",
+      "css": ["[data-qa='client-job-posting-stats'] div", "[data-test='client-open-jobs']"],
+      "read": "text",
+      "required": false
+    },
+    "upwork.client.spent_text": {
+      "on": "job",
+      "css": ["[data-qa='client-spend'] span", "[data-test='client-spend']", "[data-qa='client-spend']"],
+      "read": "text",
+      "required": false
+    },
+    "upwork.client.hires_text": {
+      "on": "job",
+      "css": ["[data-qa='client-hires']", "[data-test='client-hires']"],
+      "read": "text",
+      "required": false
+    },
+    "upwork.client.active_hires_text": {
+      "on": "job",
+      "css": ["[data-qa='client-hires'] span", "[data-test='client-active-hires']"],
+      "read": "text",
+      "required": false
+    },
+    "upwork.client.avg_rate_text": {
+      "on": "job",
+      "css": ["[data-qa='client-hourly-rate']", "[data-test='client-hourly-rate']"],
+      "read": "text",
+      "required": false
+    },
+    "upwork.client.member_since_text": {
+      "on": "job",
+      "css": ["[data-qa='client-contract-date'] small", "[data-test='client-contract-date']"],
+      "read": "text",
+      "required": false
+    },
+    "bid_text": {
+      "on": "confirmation",
+      "css": [
+        "[data-test='proposal-terms'] [data-test='bid-amount']",
+        "[data-test='proposed-bid']",
+        ".fe-proposal-terms [data-test='rate']",
+        "[data-test='proposal-details'] [data-test='bid']",
+        "[data-test='client-will-see'] strong"
+      ],
+      "read": "text",
+      "required": true
+    },
+    "connects_spent_text": {
+      "on": "confirmation",
+      "css": [
+        "[data-test='connects-spent']",
+        "[data-test='proposal-details'] [data-test='connects']",
+        ".fe-proposal-connects",
+        "[data-test='proposal-connects']"
+      ],
+      "read": "text",
+      "required": false
+    },
+    "other_name": {
+      "on": "thread",
+      "css": [
+        "[data-test='room-header'] [data-test='room-name']",
+        "[data-test='room-title']",
+        ".room-header .room-title",
+        ".up-d-room-header h2",
+        "header.room-header h3"
+      ],
+      "read": "text",
+      "required": true
+    },
+    "other_profile_url": {
+      "on": "thread",
+      "css": [
+        "[data-test='room-header'] a[href*='/freelancers/~0']",
+        "[data-test='room-header'] a[href*='/agencies/']",
+        ".room-header a[href*='/freelancers/']"
+      ],
+      "read": "href",
+      "required": false
+    },
+    "messages": {
+      "on": "thread",
+      "css": [
+        "[data-test='room-content'] [data-test='story-container']",
+        "[data-test='message-list'] .up-d-story-item",
+        ".room-messages .story-item",
+        "#room-content [data-test='story-container']"
+      ],
+      "read": "present",
+      "required": true,
+      "all": true
+    },
+    "messages.external_id": {
+      "on": "thread",
+      "css": ["[data-story-id]", "[data-test='story-container'][data-story-id]"],
+      "read": "attr:data-story-id",
+      "required": false
+    },
+    "messages.side": {
+      "on": "thread",
+      "css": [
+        "[data-test='story-sender-name']",
+        "[data-test='story-user-name']",
+        ".story-header .user-name",
+        ".up-d-story-header .name"
+      ],
+      "read": "text",
+      "required": true
+    },
+    "messages.sent_text": {
+      "on": "thread",
+      "css": [
+        "[data-test='story-timestamp']",
+        ".story-header time",
+        ".up-d-story-header .time",
+        "time"
+      ],
+      "read": "text",
+      "required": true
+    },
+    "messages.text": {
+      "on": "thread",
+      "css": [
+        "[data-test='story-message'] [data-test='message-text']",
+        "[data-test='message-text']",
+        ".story-message .text",
+        ".up-d-story-message"
+      ],
+      "read": "text",
+      "required": true
+    }
+  },
+  "identity": {
+    "css": [
+      "header [data-test='nav-user-menu'] a[href*='/freelancers/~0']",
+      "header a[href*='/freelancers/~0']",
+      "nav a[href*='/freelancers/~0']",
+      "[data-test='freelancer-profile-card'] a[href*='/freelancers/~0']",
+      ".fe-ui-profile-card a[href*='/freelancers/~0']",
+      "[data-test='freelancer-profile-link']"
+    ],
+    "read": "href"
+  },
+  "confirmation": {
+    "on": "confirmation",
+    "css": [
+      "[data-test='proposal-submitted']",
+      "[data-test='proposal-submitted-alert']",
+      ".air3-alert-success",
+      "[role='alert'].air3-alert-positive",
+      "[data-test='alert-success']",
+      ".up-alert-success"
+    ],
+    "read": "present"
+  }
+}

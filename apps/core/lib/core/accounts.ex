@@ -1,6 +1,6 @@
 defmodule Core.Accounts do
   @moduledoc """
-  Identity (JH-01 P1.0): signing in, the tokens, the account page, sessions
+  Identity (AQ-01 P1.0): signing in, the tokens, the account page, sessions
   and suspension. `Data.Accounts` stores; this decides.
 
   **Nobody signs up on their own** (§3): an account begins with an invitation,
@@ -19,7 +19,9 @@ defmodule Core.Accounts do
   alias Core.Auth.Google
   alias Core.Auth.Guardian
   alias Core.Broadcast
+  alias Core.Clock
   alias Core.Media
+  alias Core.Notifications.Deliveries
   alias Data.Accounts
   alias Data.Accounts.Person
   alias Data.Accounts.User
@@ -170,7 +172,12 @@ defmodule Core.Accounts do
 
   # ── The account page ────────────────────────────────────────────────────────
 
-  @doc "Who I am (`GET /me`): the user with their person, the roles with team names, settings, organisation."
+  @doc """
+  Who I am (`GET /me`): the user with their person, the roles with team
+  names, settings, organisation, and `teams` for the switcher (AQ-03B §5.1):
+  the person's unarchived teams by name, `{id, name, role}`; an admin gets
+  every unarchived team, `role: :admin` where they hold no membership.
+  """
   @spec me(Scope.t()) :: map()
   def me(%Scope{} = scope) do
     user = Accounts.with_person(scope.user)
@@ -187,8 +194,23 @@ defmodule Core.Accounts do
         customer_id: scope.roles.customer_id
       },
       settings: Accounts.get_settings(user.id),
-      organisation: scope.organisation
+      organisation: scope.organisation,
+      teams: switcher(scope)
     }
+  end
+
+  defp switcher(%Scope{organisation: nil}), do: []
+
+  defp switcher(%Scope{organisation: organisation} = scope) do
+    opts = if Scope.admin?(scope), do: [], else: [ids: Scope.team_ids(scope)]
+
+    if opts == [ids: []],
+      do: [],
+      else:
+        for(
+          team <- Teams.list(organisation.id, opts),
+          do: %{id: team.id, name: team.name, role: Scope.team_role(scope, team.id) || :admin}
+        )
   end
 
   @doc """
@@ -241,15 +263,21 @@ defmodule Core.Accounts do
     |> Map.put("photo_media_id", Person.photo_media_id(person))
   end
 
-  @doc "Theme, quiet hours, digest (`PUT /me/settings`)."
-  @spec put_settings(Scope.t(), map()) :: {:ok, struct()} | {:error, Ecto.Changeset.t()}
-  def put_settings(%Scope{user: user} = scope, params) do
+  @doc """
+  Theme, quiet hours, digest (`PUT /me/settings`). A changed quiet-hours
+  window re-plans the person's deliveries it held (AQ-08 §11.4), in the
+  same transaction.
+  """
+  @spec put_settings(Scope.t(), map(), DateTime.t()) ::
+          {:ok, struct()} | {:error, Ecto.Changeset.t()}
+  def put_settings(%Scope{user: user} = scope, params, %DateTime{} = now \\ Clock.now()) do
     params =
       params
       |> Map.new(fn {k, v} -> {to_string(k), v} end)
       |> Map.take(Enum.map(@settings_fields, &to_string/1))
 
-    before = Audit.snapshot(Accounts.get_settings(user.id), @settings_fields)
+    previous = Accounts.get_settings(user.id)
+    before = Audit.snapshot(previous, @settings_fields)
 
     Repo.transaction(fn ->
       case Accounts.put_settings(user.id, params) do
@@ -260,6 +288,7 @@ defmodule Core.Accounts do
               after: Audit.snapshot(settings, @settings_fields)
             )
 
+          :ok = replan(previous, settings, now)
           settings
 
         {:error, changeset} ->
@@ -267,6 +296,16 @@ defmodule Core.Accounts do
       end
     end)
   end
+
+  # A changed window moves the deliveries it held (AQ-08 §11.4).
+  defp replan(previous, settings, now) do
+    if window(previous) != window(settings),
+      do: _moved = Deliveries.replan_held(settings.user_id, now)
+
+    :ok
+  end
+
+  defp window(settings), do: {settings.quiet_hours_start, settings.quiet_hours_end}
 
   @doc """
   A new password behind the current one (`POST /me/password`). A wrong

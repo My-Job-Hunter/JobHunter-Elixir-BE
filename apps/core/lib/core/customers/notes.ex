@@ -1,6 +1,6 @@
 defmodule Core.Customers.Notes do
   @moduledoc """
-  Staff-only notes about a customer (JH-01 §4.3, §6.2). Never in the
+  Staff-only notes about a customer (AQ-01 §4.3, §6.2). Never in the
   portal: a customer's scope answers `:not_found` for them, and no portal
   route exists. Anyone who sees the customer reads them; a lead or above
   writes; the author edits or deletes their own, a lead or above anyone's.

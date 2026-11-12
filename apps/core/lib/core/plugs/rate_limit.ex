@@ -12,6 +12,10 @@ defmodule Core.Plugs.RateLimit do
   limit throttles the whole team for one member's posting. Place this
   after the authenticate plug so `current_user` is set.
 
+  `by: :device` keys on the connected extension instead
+  (`conn.assigns.device`, AQ-05 §11.4: 120 a minute per device), so one
+  person's two browsers have a budget each.
+
   ## Failing open
 
   A backend error allows the request. **A rate limiter must never 500 the
@@ -48,13 +52,14 @@ defmodule Core.Plugs.RateLimit do
     %{
       name: Keyword.fetch!(opts, :name),
       limit: Keyword.get(opts, :limit, @default_limit),
-      scale_ms: Keyword.get(opts, :scale_ms, @default_scale_ms)
+      scale_ms: Keyword.get(opts, :scale_ms, @default_scale_ms),
+      by: Keyword.get(opts, :by, :caller)
     }
   end
 
   @impl Plug
-  def call(conn, %{name: name, limit: limit, scale_ms: scale_ms}) do
-    case check("#{name}:#{caller_id(conn)}", scale_ms, limit) do
+  def call(conn, %{name: name, limit: limit, scale_ms: scale_ms} = opts) do
+    case check("#{name}:#{caller_id(conn, Map.get(opts, :by, :caller))}", scale_ms, limit) do
       :allow -> conn
       {:deny, retry_after_ms} -> reject(conn, retry_after_ms)
     end
@@ -101,6 +106,10 @@ defmodule Core.Plugs.RateLimit do
   end
 
   defp enabled?, do: :core |> Application.get_env(__MODULE__, []) |> Keyword.get(:enabled, true)
+
+  # A connected extension has its own budget (AQ-05 §11.4).
+  defp caller_id(%{assigns: %{device: %{id: id}}}, :device) when is_binary(id), do: "device:#{id}"
+  defp caller_id(conn, _by), do: caller_id(conn)
 
   # Signed-in callers get their own budget; anonymous callers share by address.
   defp caller_id(conn) do

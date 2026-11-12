@@ -1,6 +1,6 @@
 defmodule Core.CustomersTest do
   @moduledoc """
-  The customer's life from the staff side (JH-01 §6.2) and the portal
+  The customer's life from the staff side (AQ-01 §6.2) and the portal
   invitation end to end: issued by a lead, accepted by the person, the
   login attached and the status active, in one transaction with its audit
   rows. The matrix (`Core.AccessMatrixTest`) covers who may; this covers
@@ -22,7 +22,8 @@ defmodule Core.CustomersTest do
     frontend = team_fixture(org, name: "Frontend squad")
     admin = admin_fixture(org)
     lead = member_fixture(backend, :lead)
-    manager = member_fixture(frontend, :manager)
+    front_lead = member_fixture(frontend, :lead)
+    member = member_fixture(backend, :member)
 
     %{
       org: org,
@@ -30,7 +31,8 @@ defmodule Core.CustomersTest do
       frontend: frontend,
       admin: scope_for(admin),
       lead: scope_for(lead),
-      manager: scope_for(manager)
+      front_lead: scope_for(front_lead),
+      member: scope_for(member)
     }
   end
 
@@ -75,9 +77,63 @@ defmodule Core.CustomersTest do
     assert Enum.map(listed, & &1.display_name) == ["Tanweer"]
   end
 
-  test "list: a manager sees their teams' and the unassigned; filters by team, status, q and mine",
+  test "create needs team_ids, each a team the caller leads (§8.5)", %{
+    member: member,
+    lead: lead,
+    admin: admin,
+    backend: backend,
+    frontend: frontend
+  } do
+    body = %{"display_name" => "X", "email" => "x@example.com"}
+
+    assert Customers.create(lead, body, @now) ==
+             {:error, {:invalid, %{"team_ids" => ["is required"]}}}
+
+    assert Customers.create(member, Map.put(body, "team_ids", [backend.id]), @now) ==
+             {:error, {:forbidden, "Only a lead of that team can add a customer to it."}}
+
+    assert {:ok, made} = Customers.create(admin, Map.put(body, "team_ids", [frontend.id]), @now)
+    assert made.team_ids == [frontend.id]
+  end
+
+  test "another team for a customer the caller reaches: a lead of that team, or the system admin",
        %{
-         manager: manager,
+         org: org,
+         lead: lead,
+         backend: backend,
+         frontend: frontend
+       } do
+    customer = customer_fixture(org, [backend])
+
+    # Hira-like: a lead of both teams adds the customer to the other one.
+    member_fixture(frontend, :lead, lead.user)
+    both = scope_for(lead.user)
+    assert {:ok, %{team_ids: ids}} = Customers.assign_team(both, customer.id, frontend.id, @now)
+    assert Enum.sort(ids) == Enum.sort([backend.id, frontend.id])
+
+    # Staff of a serving team who leads another team adds the customer there;
+    # a team they only work in is refused with words, one they are not in is not found.
+    other = team_fixture(org)
+    worker = member_fixture(backend, :member)
+    member_fixture(other, :lead, worker)
+
+    assert {:ok, %{team_ids: ids}} =
+             Customers.assign_team(scope_for(worker), customer.id, other.id, @now)
+
+    assert other.id in ids
+
+    plain = member_fixture(backend, :member)
+
+    assert Customers.assign_team(scope_for(plain), customer.id, other.id, @now) ==
+             {:error, {:forbidden, "Only a team lead can do that for a customer."}}
+
+    assert Customers.assign_team(scope_for(worker), customer.id, frontend.id, @now) ==
+             {:error, :not_found}
+  end
+
+  test "list: a lead sees their teams' (never the unassigned); filters by team, status, q and mine",
+       %{
+         front_lead: front_lead,
          admin: admin,
          lead: lead,
          backend: backend,
@@ -87,20 +143,21 @@ defmodule Core.CustomersTest do
     tanweer = customer_fixture(org, [backend], display_name: "Tanweer")
     imran = customer_fixture(org, [frontend], display_name: "Imran")
     lone = customer_fixture(org, [], display_name: "Lone")
-    profile_fixture(imran, owners: [manager.user])
+    profile_fixture(imran, owners: [front_lead.user])
 
     names = fn {:ok, list} -> list |> Enum.map(& &1.display_name) |> Enum.sort() end
 
-    assert names.(Customers.list(manager)) == ["Imran", "Lone"]
-    assert names.(Customers.list(manager, %{"team_id" => frontend.id})) == ["Imran"]
-    assert names.(Customers.list(manager, %{"team_id" => backend.id})) == []
-    assert names.(Customers.list(manager, %{"mine" => "true"})) == ["Imran"]
+    assert names.(Customers.list(front_lead)) == ["Imran"]
+    assert names.(Customers.list(front_lead, %{"team_id" => frontend.id})) == ["Imran"]
+    assert names.(Customers.list(front_lead, %{"team_id" => backend.id})) == []
+    assert names.(Customers.list(front_lead, %{"mine" => "true"})) == ["Imran"]
     assert names.(Customers.list(admin)) == ["Imran", "Lone", "Tanweer"]
     assert names.(Customers.list(admin, %{"q" => "tan"})) == ["Tanweer"]
     assert names.(Customers.list(lead)) == ["Tanweer"]
     assert Customers.list(lead, %{"status" => "nope"}) == {:error, {:missing, :status}}
     assert Customers.get(lead, lone.id) == {:error, :not_found}
-    assert {:ok, _lone} = Customers.get(manager, lone.id)
+    assert Customers.get(front_lead, lone.id) == {:error, :not_found}
+    assert {:ok, _lone} = Customers.get(admin, lone.id)
     assert {:ok, _tanweer} = Customers.get(lead, tanweer.id)
   end
 
@@ -163,10 +220,10 @@ defmodule Core.CustomersTest do
     assert "joined" in actions
   end
 
-  test "the portal's update touches contact details only; remove_team; a customer with no team stays listed for a manager",
+  test "the portal's update touches contact details only; remove_team; a customer with no team stays seen by the system admin",
        %{
          lead: lead,
-         manager: manager,
+         admin: admin,
          backend: backend,
          org: org
        } do
@@ -185,7 +242,7 @@ defmodule Core.CustomersTest do
     assert {:ok, bare} = Customers.remove_team(lead, customer.id, backend.id, @now)
     assert bare.team_ids == []
     assert Customers.get(lead, customer.id) == {:error, :not_found}
-    assert {:ok, _seen} = Customers.get(manager, customer.id)
+    assert {:ok, _seen} = Customers.get(admin, customer.id)
     assert Customers.remove_team(lead, customer.id, backend.id, @now) == {:error, :not_found}
   end
 end

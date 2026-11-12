@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateDocuments do
   use Ecto.Migration
 
   @moduledoc """
-  A profile's documents (JH-01 §4.3): CVs, cover-letter templates,
+  A profile's documents (AQ-01 §4.3): CVs, cover-letter templates,
   portfolio links, certificates. **A CV is one row per version**: a new
   version is a new row with `version_no + 1` that `supersedes` the old one,
   so a lead sent "Golang v4" keeps pointing at v4.

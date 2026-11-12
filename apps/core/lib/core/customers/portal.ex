@@ -1,6 +1,6 @@
 defmodule Core.Customers.Portal do
   @moduledoc """
-  What only the portal asks (JH-01 §6.3): "who serves me". Everything else
+  What only the portal asks (AQ-01 §6.3): "who serves me". Everything else
   the portal does goes through the same verbs the console uses, on a scope
   pinned to the customer (`ApiClient.Plugs.CustomerScope`).
   """

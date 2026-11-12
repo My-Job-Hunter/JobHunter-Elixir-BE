@@ -1,6 +1,6 @@
-# Job Hunter — Backend
+# AutoQare — Backend
 
-The Phoenix API behind Job Hunter: the team console (`/team/v1`), the customer
+The Phoenix API behind AutoQare: the team console (`/team/v1`), the customer
 portal (`/client/v1`) and the Chrome extension (`/ext/v1`), served by one
 endpoint on **4100**. See [CLAUDE.md](./CLAUDE.md) for how to work here,
 [docs/CONVENTIONS.md](./docs/CONVENTIONS.md) for the rules, and
@@ -9,17 +9,17 @@ endpoint on **4100**. See [CLAUDE.md](./CLAUDE.md) for how to work here,
 ## Setup
 
 Elixir 1.20 / OTP 29 (`.tool-versions`, asdf) and Postgres on
-`localhost:5432` as `postgres` / `postgres` (`JH_DB_PORT` to move it).
+`localhost:5432` as `postgres` / `postgres` (`AQ_DB_PORT` to move it).
 
 ```bash
-mix setup          # deps, job_hunter_dev, migrations, seeds
+mix setup          # deps, autoqare_dev, migrations, seeds
 mix phx.server     # localhost:4100
 ```
 
 Then:
 
 ```bash
-curl localhost:4100/info              # {"name":"job_hunter","version":"0.1.0"}
+curl localhost:4100/info              # {"name":"autoqare","version":"0.1.0"}
 curl localhost:4100/team/v1/info      # {"app":"team","api":"v1","version":"0.1.0"}
 curl localhost:4100/client/v1/info
 curl localhost:4100/ext/v1/info
@@ -33,17 +33,18 @@ one error shape every route uses.
 ```bash
 mix ecto.reset         # drop, create, migrate, every seed
 mix ecto.reset.clean   # drop, create, migrate, the production seed only
-mix jh.seed_reference  # the reference lists (every environment, test included)
-mix jh.prod_seed       # what a deployment holds before anyone arrives
-mix jh.seed_demo       # dev-only rows
-mix jh.vocabulary      # rewrites apps/data/priv/vocabulary.json from Data.Vocabulary
+mix aq.seed_reference  # the reference lists (every environment, test included)
+mix aq.prod_seed       # what a deployment holds before anyone arrives
+mix aq.seed_demo       # dev-only rows
+mix aq.seed_standard   # dev only: the standard test users, teams and jobs (docs/TEST-ACCOUNTS.md)
+mix aq.vocabulary      # rewrites apps/data/priv/vocabulary.json from Data.Vocabulary
 ```
 
 The production seed holds the **skills vocabulary** (about 120 skills in nine
 categories, idempotent by slug, `Data.Seeds.Skills`). Skills belong to an
-organisation, so on a clean database `jh.prod_seed` loads nothing and
-`mix jh.bootstrap` loads them for the organisation it makes; run
-`mix jh.prod_seed` again any time to top up. `Data.Seeds` lists the groups.
+organisation, so on a clean database `aq.prod_seed` loads nothing and
+`mix aq.bootstrap` loads them for the organisation it makes; run
+`mix aq.prod_seed` again any time to top up. `Data.Seeds` lists the groups.
 
 Pre-production, a table changes by editing its `create` migration and
 resetting — both `mix ecto.reset` and `MIX_ENV=test mix ecto.reset`.
@@ -51,17 +52,17 @@ resetting — both `mix ecto.reset` and `MIX_ENV=test mix ecto.reset`.
 ## The front door
 
 Nobody signs up on their own: every account begins with an invitation, and
-the first admin's comes from a mix task (JH-01 §3):
+the first admin's comes from a mix task (AQ-01 §3):
 
 ```bash
-mix jh.bootstrap --org "Regbits BD" --admin dawud@example.com --name "Dawud Kalim"
+mix aq.bootstrap --org "Regbits BD" --admin super-admin@example.com --name "Super Admin"
 # Created the organisation Regbits BD (regbits-bd).
-# Invited dawud@example.com as an admin.
+# Invited super-admin@example.com as an admin.
 # Accept link: http://localhost:5800/invite/9C-C623
 ```
 
 Idempotent: run it twice and it reports the organisation exists and re-issues
-the invitation if none is open. `mix ecto.reset.clean` + `jh.bootstrap` is
+the invitation if none is open. `mix ecto.reset.clean` + `aq.bootstrap` is
 "a deployment before anyone arrives".
 
 Then, with the server running:
@@ -70,7 +71,7 @@ Then, with the server running:
 curl localhost:4100/team/v1/auth/invitations/9C-C623
 curl -X POST localhost:4100/team/v1/auth/invitations/9C-C623/accept \
   -H 'content-type: application/json' \
-  -d '{"name":"Dawud Kalim","password":"correct horse battery"}'
+  -d '{"name":"Super Admin","password":"correct horse battery"}'
 # → {access_token, refresh_token, user, landing}
 curl localhost:4100/team/v1/me -H "authorization: Bearer $ACCESS_TOKEN"
 ```

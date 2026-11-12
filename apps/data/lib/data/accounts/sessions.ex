@@ -1,6 +1,6 @@
 defmodule Data.Accounts.Sessions do
   @moduledoc """
-  A person's sessions (JH-01 §6.1 `/me/sessions`): one per sign-in, read
+  A person's sessions (AQ-01 §6.1 `/me/sessions`): one per sign-in, read
   from the refresh tokens `guardian_tokens` holds. Each sign-in mints a
   session id (`sid`) that both tokens carry and a refresh keeps, so a device
   stays one row across refreshes and can be signed out on its own.
@@ -10,7 +10,11 @@ defmodule Data.Accounts.Sessions do
 
   alias Data.Repo
 
-  @doc "The live sessions, newest first: the id, the device, when it signed in, when it lapses."
+  @doc """
+  The live sessions, newest first: the id, the device, when it signed in,
+  when it lapses. An extension's (`dev.app` `ext`, AQ-05 §11.2) is a device
+  now, listed under Account › Extension, so it is left out.
+  """
   @spec list_sessions(binary(), DateTime.t()) :: [map()]
   def list_sessions(user_id, %DateTime{} = now) do
     sub = to_string(user_id)
@@ -27,10 +31,13 @@ defmodule Data.Accounts.Sessions do
       }
     )
     |> Repo.all()
-    |> Enum.filter(& &1.sid)
+    |> Enum.filter(&(&1.sid && not extension?(&1.device)))
     |> Enum.uniq_by(& &1.sid)
     |> Enum.map(&%{&1 | expires_at: DateTime.from_unix!(&1.expires_at)})
   end
+
+  defp extension?(%{"app" => "ext"}), do: true
+  defp extension?(_device), do: false
 
   @doc "Ends one session: every token carrying its id. Answers how many rows went."
   @spec revoke_session(binary(), String.t()) :: non_neg_integer()

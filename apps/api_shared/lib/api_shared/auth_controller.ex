@@ -1,6 +1,6 @@
 defmodule ApiShared.AuthController do
   @moduledoc """
-  Sign-in, the tokens, the invitation and the reset (JH-01 §6.1), for every
+  Sign-in, the tokens, the invitation and the reset (AQ-01 §6.1), for every
   app at its own prefix. **Thin on purpose**: every rule is `Core.Accounts`,
   `Core.Accounts.Recovery` or `Core.Organisation.Invitations`.
   """
@@ -11,6 +11,7 @@ defmodule ApiShared.AuthController do
   alias Core.Accounts.Recovery
   alias Core.Auth.Guardian
   alias Core.Clock
+  alias Core.Extension
   alias Core.Organisation.Invitations
   alias Core.Plugs.RateLimit
 
@@ -32,16 +33,30 @@ defmodule ApiShared.AuthController do
     end
   end
 
-  @doc "`POST /auth/refresh {refresh_token}`: a new pair; the old refresh revoked."
+  @doc """
+  `POST /auth/refresh {refresh_token}`: a new pair; the old refresh revoked.
+  A device's refresh token refreshes only at `/ext`, and no other there
+  (AQ-05 §7).
+  """
   def refresh(conn, %{"refresh_token" => token}) when is_binary(token) do
-    with {:ok, tokens} <- Guardian.exchange_refresh_token(token) do
+    with {:ok, tokens} <- Guardian.exchange_refresh_token(token, conn.assigns[:app]) do
       render(conn, :tokens, tokens: tokens)
     end
   end
 
   def refresh(_conn, _params), do: {:error, :invalid_refresh_token}
 
-  @doc "`POST /auth/logout`: this session's tokens, by `sid`. 204."
+  @doc """
+  `POST /auth/logout`: this session's tokens, by `sid`. 204. On `/ext` the
+  session is a device, so signing out is *Disconnect* (AQ-05 §7): its
+  tokens and its row together.
+  """
+  def logout(%{assigns: %{app: "ext", device: device}} = conn, _params) do
+    with {:ok, _device} <- Extension.disconnect(conn.assigns.scope, device.id, Clock.now()) do
+      send_resp(conn, :no_content, "")
+    end
+  end
+
   def logout(conn, _params) do
     :ok = Accounts.logout(conn.assigns.scope, sid(conn))
     send_resp(conn, :no_content, "")

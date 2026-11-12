@@ -1,7 +1,7 @@
 defmodule Api.Telemetry do
   @moduledoc """
   The metrics the endpoint emits, and the poller that samples the VM
-  (copied from AutoCare, trimmed to what exists).
+  (copied from mCart, trimmed to what exists).
 
   No reporter is attached: `metrics/0` is the list a reporter would take
   (`Telemetry.Metrics.ConsoleReporter` in dev, a real one when hosting is

@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateProfileSkills do
   use Ecto.Migration
 
   @moduledoc """
-  A profile's skills with their level (JH-01 §4.3). The skill is restricted
+  A profile's skills with their level (AQ-01 §4.3). The skill is restricted
   from deletion while a profile names it — the vocabulary is archived, not
   pruned — and the pair is unique.
   """

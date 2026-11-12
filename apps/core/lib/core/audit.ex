@@ -1,6 +1,6 @@
 defmodule Core.Audit do
   @moduledoc """
-  The audit log (JH-01 §4.2): every write records who did what, on what,
+  The audit log (AQ-01 §4.2): every write records who did what, on what,
   before → after, **inside the same transaction as the write**. A rolled-back
   write leaves no row; a row with no write cannot exist.
 

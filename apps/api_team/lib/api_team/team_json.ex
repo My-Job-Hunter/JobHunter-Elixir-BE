@@ -1,5 +1,5 @@
 defmodule ApiTeam.TeamJSON do
-  @moduledoc "The teams' shapes (JH-01 §6.2)."
+  @moduledoc "The teams' shapes (AQ-01 §6.2)."
 
   alias Data.Teams.TeamSettings
 

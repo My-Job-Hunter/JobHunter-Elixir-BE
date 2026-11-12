@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateUserIdentities do
   use Ecto.Migration
 
   @moduledoc """
-  An account's link to an outside sign-in: Google (JH-01 §4.1, QP1-5).
+  An account's link to an outside sign-in: Google (AQ-01 §4.1, QP1-5).
 
   Keyed by Google's own stable `sub`, never by the address, which a person
   can change at Google. One account per identity, one identity per provider

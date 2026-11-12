@@ -1,6 +1,6 @@
 defmodule ApiShared.MeController do
   @moduledoc """
-  The account page (JH-01 §6.1): who I am, my settings, my password, my
+  The account page (AQ-01 §6.1): who I am, my settings, my password, my
   email, my sessions. Every action hands `conn.assigns.scope` to
   `Core.Accounts` and renders what comes back.
   """

@@ -69,7 +69,7 @@
       #
       checks: %{
         enabled: [
-          # 500, copied from AutoCare. `excluded` is empty: adding a path is a
+          # 500, copied from mCart. `excluded` is empty: adding a path is a
           # decision, argued beside it here. A dispatch table (the router, the
           # fallback controller) is the kind of file that may earn one, because
           # splitting a manifest scatters entries over files matched in an order

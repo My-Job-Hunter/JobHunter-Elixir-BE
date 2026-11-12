@@ -1,4 +1,4 @@
-defmodule JobHunter.MixProject do
+defmodule Autoqare.MixProject do
   use Mix.Project
 
   def project do
@@ -60,18 +60,18 @@ defmodule JobHunter.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       # An empty database with the production seed alone: what a deployment's
       # database looks like before anyone arrives.
-      "ecto.reset.clean": ["ecto.drop", "ecto.create --quiet", "ecto.migrate", "jh.prod_seed"],
+      "ecto.reset.clean": ["ecto.drop", "ecto.create --quiet", "ecto.migrate", "aq.prod_seed"],
       # Just the data, on a database that already exists.
       "ecto.seed": seeds(),
       # `data` starts the Repo, so a test run needs the database to exist.
-      # **`jh.seed_reference` belongs to preparing the database**, not to
+      # **`aq.seed_reference` belongs to preparing the database**, not to
       # seeding demo data: reference lists are closer to the schema than to
       # content, and a suite that depends on someone having run `ecto.reset`
       # by hand fails for the next person to clone.
       test: [
         "ecto.create --quiet",
         "ecto.migrate --quiet",
-        "jh.seed_reference",
+        "aq.seed_reference",
         "test"
       ],
       precommit: [
@@ -90,7 +90,14 @@ defmodule JobHunter.MixProject do
   # Outside test, a dev database holds what a deployment holds (the production
   # seed, which starts with the reference groups and is idempotent) and then
   # the dev-only rows. Add a new seed task here, never to the aliases directly.
+  #
+  # `aq.seed_standard` is last: the standard test set (`Core.Standard`,
+  # docs/TEST-ACCOUNTS.md), made through the front door, so it needs the
+  # production seed first. It lives in `core` and does nothing outside dev.
   defp seeds do
-    ["jh.seed_reference"] ++ if Mix.env() == :test, do: [], else: ["jh.prod_seed", "jh.seed_demo"]
+    ["aq.seed_reference"] ++
+      if Mix.env() == :test,
+        do: [],
+        else: ["aq.prod_seed", "aq.seed_demo", "aq.seed_standard"]
   end
 end

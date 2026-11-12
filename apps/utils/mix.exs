@@ -83,6 +83,17 @@ defmodule Utils.MixProject do
       {:decimal, "~> 3.1"},
       # The house HTTP client — never httpoison, tesla or httpc.
       {:req, "~> 0.5"},
+      # A job's description as the extension read it (AQ-05 §10.1, PLAN
+      # §15.2): sanitised before it is stored, never trusted as sent.
+      {:html_sanitize_ex, "~> 1.5"},
+      # An uploaded `.eml` (AQ-06 §7.1, QP6-6): RFC 5322 headers and MIME
+      # multipart, with no native dependency. Chosen in P6, not P9, because
+      # the upload is P6's; P9's inbound mail reads with the same parser.
+      {:mail, "~> 0.5"},
+      # An approval's body is markdown, and its version carries `body_html`
+      # (AQ-07 §11.4): rendered here, then sanitised by `html_sanitize_ex`.
+      # Pure Elixir, no dependencies of its own.
+      {:earmark, "~> 1.4"},
 
       # ── Tooling, shared by every app ────────────────────────────────────
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}

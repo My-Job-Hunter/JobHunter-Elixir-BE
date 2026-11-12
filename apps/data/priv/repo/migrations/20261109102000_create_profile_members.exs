@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateProfileMembers do
   use Ecto.Migration
 
   @moduledoc """
-  The owners of a profile (JH-01 §4.3; PLAN §3.2): the staff who hunt for
+  The owners of a profile (AQ-01 §4.3; PLAN §3.2): the staff who hunt for
   it. The pair is unique; `since_on` is the day they took it on. The portal's
   "who serves me" reads these names when the team allows it.
   """

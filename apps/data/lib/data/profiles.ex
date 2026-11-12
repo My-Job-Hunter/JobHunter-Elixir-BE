@@ -1,7 +1,7 @@
 defmodule Data.Profiles do
   @moduledoc """
   Profiles with their owners, skills, channel links and default document
-  (JH-01 §4.3). Storage only. Every read answers the profile **with its
+  (AQ-01 §4.3). Storage only. Every read answers the profile **with its
   customer, and the customer with `team_ids`**, because `Core.Access`
   decides from the customer and a profile is never shown without one.
   """
@@ -48,6 +48,25 @@ defmodule Data.Profiles do
         else: where(query, [p], is_nil(p.archived_at))
 
     query |> Repo.all() |> Enum.map(&fill/1)
+  end
+
+  @doc """
+  The organisation's live profiles — not archived, active, of a customer
+  not archived — with their customers and skills: whom a job may suit
+  (AQ-03 §9).
+  """
+  @spec live_in_organisation(binary()) :: [Profile.t()]
+  def live_in_organisation(organisation_id) do
+    from(p in Profile,
+      join: c in assoc(p, :customer),
+      where:
+        c.organisation_id == ^organisation_id and is_nil(c.archived_at) and
+          is_nil(p.archived_at) and p.status == :active,
+      order_by: [asc: c.display_name, asc: p.title],
+      preload: ^@preload
+    )
+    |> Repo.all()
+    |> Enum.map(&fill/1)
   end
 
   @doc "The profile again, with every association fresh."

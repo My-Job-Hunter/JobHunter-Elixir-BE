@@ -1,6 +1,6 @@
 defmodule Api.UserSocket do
   @moduledoc """
-  The one socket, at `/socket` (PLAN §15.6; JH-01 §6.4).
+  The one socket, at `/socket` (PLAN §15.6; AQ-01 §6.4).
 
   `connect/3` verifies an **access** token passed as `token` and assigns
   `user_id`; **no reason is given on refusal** — a socket that explains why
@@ -8,11 +8,24 @@ defmodule Api.UserSocket do
   `"user_socket:<user_id>"`, so sign-out-everywhere
   (`Core.Accounts.logout_all/1`) drops every live socket the person has.
 
-  **No channel yet**: the first, `user:<id>`, comes with the bell in P2.
-  Channels live in `core`, which owns the domain; this module is transport.
+  **The channels** (AQ-02 §7.4), beside it in `api` because a channel is
+  transport; who may join and which events a change sends are
+  `Core.Realtime`'s:
+
+  | Topic | Channel |
+  |---|---|
+  | `user:<id>` | `Api.UserChannel` |
+  | `team:<id>` | `Api.TeamChannel` |
+  | `customer:<id>` | `Api.CustomerChannel` |
+  | `lead:<id>` | `Api.LeadChannel` (AQ-04B §8.3) |
   """
 
   use Phoenix.Socket
+
+  channel "user:*", Api.UserChannel
+  channel "team:*", Api.TeamChannel
+  channel "customer:*", Api.CustomerChannel
+  channel "lead:*", Api.LeadChannel
 
   alias Core.Auth.Guardian
 

@@ -1,6 +1,6 @@
 defmodule Core.Customers.Channels do
   @moduledoc """
-  A customer's channels (JH-01 §4.3, §6.2, §6.3): the accounts the team
+  A customer's channels (AQ-01 §4.3, §6.2, §6.3): the accounts the team
   works through. Every staff role of a serving team has full run of them,
   and so does the customer (§5.3). **Nothing here stores a credential**
   (PLAN Q3): `operated_by` says who holds the login.

@@ -1,17 +1,20 @@
 defmodule Core.Organisation.Teams do
   @moduledoc """
-  Teams, their members and their settings (JH-01 §4.2, §6.2).
+  Teams, their members and their settings (AQ-01 §4.2, §6.2).
 
-  Two guards, tested: **a team keeps at least one lead or manager while it
-  has members**, and **a lead changes no role above lead** (`:role_above_yours`:
-  "Only a manager can make a manager."). An admin may do anything; a manager
-  anything in their teams; a lead invites, changes roles and removes within
-  their team; a member reads.
+  AQ-04A §8.5 settles who: **the system admin** makes, renames and archives
+  teams and changes roles; **a team lead** runs their team's settings and
+  removes its staff (never another lead: "Only the system admin can do
+  that."); a member reads. One guard, tested: **a team keeps at least one
+  lead while it has members**.
   """
 
   alias Core.Access
   alias Core.Audit
+  alias Core.Broadcast
+  alias Core.Realtime
   alias Data.Accounts
+  alias Data.Customers
   alias Data.Repo
   alias Data.Scope
   alias Data.Teams
@@ -23,11 +26,11 @@ defmodule Core.Organisation.Teams do
 
   # ── Teams ───────────────────────────────────────────────────────────────────
 
-  @doc "`GET /teams`: every team for an admin or a manager, the caller's own otherwise."
+  @doc "`GET /teams`: every team for the system admin, the caller's own otherwise."
   @spec list(Scope.t()) :: {:ok, [Team.t()]}
   def list(%Scope{organisation: organisation} = scope) do
     teams =
-      if Scope.admin?(scope) or Scope.any_team?(scope, :manager),
+      if Scope.admin?(scope),
         do: Teams.list(organisation.id),
         else: Teams.list(organisation.id, ids: Scope.team_ids(scope))
 
@@ -114,7 +117,7 @@ defmodule Core.Organisation.Teams do
 
   # ── Settings ────────────────────────────────────────────────────────────────
 
-  @doc "`GET /teams/:id/settings`: the six toggles, for a lead or above."
+  @doc "`GET /teams/:id/settings`: the three `peer_*` levels and three customer toggles, for a lead or above."
   @spec get_settings(Scope.t(), binary()) :: {:ok, TeamSettings.t()} | {:error, term()}
   def get_settings(%Scope{} = scope, id) do
     with {:ok, team} <- fetch(scope, :read_settings, id), do: {:ok, Teams.get_settings(team.id)}
@@ -125,8 +128,18 @@ defmodule Core.Organisation.Teams do
   def put_settings(%Scope{} = scope, id, params) do
     with {:ok, team} <- fetch(scope, :update_settings, id) do
       attrs = take(params, Enum.map(TeamSettings.fields(), &to_string/1))
-      Repo.transaction(fn -> write_settings(scope, team, attrs) end)
+
+      fn -> write_settings(scope, team, attrs) end
+      |> Repo.transaction()
+      |> Broadcast.after_commit(fn _settings -> tell_boards(team) end)
     end
+  end
+
+  # Open boards re-read: what a member sees of peers' tasks, and the names a customer
+  # reads, follow these settings.
+  defp tell_boards(team) do
+    customers = Customers.list(team.organisation_id, team_ids: [team.id])
+    team.id |> Realtime.team_settings_events(Enum.map(customers, & &1.id)) |> Realtime.send_all()
   end
 
   defp write_settings(scope, team, attrs) do
@@ -176,8 +189,8 @@ defmodule Core.Organisation.Teams do
   end
 
   @doc """
-  `POST /teams/:id/members/:user_id/role {role}`. A lead may not make a
-  manager, nor touch one (`:role_above_yours`); the team keeps a lead.
+  `POST /teams/:id/members/:user_id/role {role: lead | member}`: the system
+  admin's (AQ-04A §8.5); the team keeps a lead.
   """
   @spec change_role(Scope.t(), binary(), binary(), String.t() | atom()) ::
           {:ok, TeamMember.t()} | {:error, term()}
@@ -185,8 +198,6 @@ defmodule Core.Organisation.Teams do
     with {:ok, team} <- fetch(scope, :change_role, team_id),
          {:ok, role} <- role(role),
          %TeamMember{} = member <- Teams.get_open_member(team.id, user_id) || {:error, :not_found},
-         :ok <- within_reach(scope, team, member.role),
-         :ok <- within_reach(scope, team, role),
          :ok <- keeps_a_lead(team, member, role) do
       Repo.transaction(fn ->
         {:ok, changed} = Teams.change_role(member, role)
@@ -202,12 +213,16 @@ defmodule Core.Organisation.Teams do
     end
   end
 
-  @doc "`DELETE /teams/:id/members/:user_id`: the membership ends (`left_at`); the row stays."
+  @doc """
+  `DELETE /teams/:id/members/:user_id`: the membership ends (`left_at`); the
+  row stays. The system admin removes anyone; a team lead removes staff of
+  their team, never another lead (AQ-04A §8.5).
+  """
   @spec remove_member(Scope.t(), binary(), binary(), DateTime.t()) :: :ok | {:error, term()}
   def remove_member(%Scope{} = scope, team_id, user_id, %DateTime{} = now) do
     with {:ok, team} <- fetch(scope, :remove_member, team_id),
          %TeamMember{} = member <- Teams.get_open_member(team.id, user_id) || {:error, :not_found},
-         :ok <- within_reach(scope, team, member.role),
+         :ok <- within_reach(scope, member.role),
          :ok <- keeps_a_lead(team, member, nil) do
       Repo.transaction(fn ->
         {:ok, left} = Teams.leave(member, now)
@@ -221,7 +236,7 @@ defmodule Core.Organisation.Teams do
     end
   end
 
-  defp role(role) when is_atom(role) and role in [:manager, :lead, :member], do: {:ok, role}
+  defp role(role) when is_atom(role) and role in [:lead, :member], do: {:ok, role}
 
   defp role(role) when is_binary(role) do
     if role in Data.Vocabulary.team_member_roles(),
@@ -231,14 +246,14 @@ defmodule Core.Organisation.Teams do
 
   defp role(_role), do: {:error, {:missing, :role}}
 
-  # A lead's reach ends at lead: a manager is above them, to make or to touch.
-  defp within_reach(scope, team, role) do
-    lead? = not Scope.admin?(scope) and Scope.team_role(scope, team.id) == :lead
-
-    if lead? and role == :manager, do: {:error, :role_above_yours}, else: :ok
+  # A team lead removes staff, never another lead: that is the system admin's.
+  defp within_reach(scope, role) do
+    if Scope.admin?(scope) or role != :lead,
+      do: :ok,
+      else: {:error, {:forbidden, Access.admin_words()}}
   end
 
-  # The team keeps a lead or a manager while it has members. `new_role` is
+  # The team keeps a lead while it has members. `new_role` is
   # nil for a removal.
   defp keeps_a_lead(team, member, new_role) do
     others = team.id |> Teams.list_members() |> Enum.reject(&(&1.id == member.id))
@@ -251,8 +266,7 @@ defmodule Core.Organisation.Teams do
       do: :ok,
       else:
         {:error,
-         {:forbidden,
-          "The team needs a lead or a manager while it has members. Promote someone first."}}
+         {:forbidden, "The team needs a lead while it has members. Promote someone first."}}
   end
 
   defp take(params, keys),

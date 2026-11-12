@@ -5,8 +5,13 @@ defmodule Core.Audit.Labels do
   squad**" rather than a uuid. Resolved in one query per subject kind for a
   page of events; a subject that has gone (or a kind with no label) is nil.
 
+  A share link (AQ-03B §3.3) reads as the title of the task or job it
+  shares, so "Fiza share link created share links **Backend Developer**";
+  its actions are `share_link_created`, `share_link_opened` and
+  `share_link_revoked`.
+
   The table here is the only place `subject_kind` strings are interpreted,
-  and the audit log is the one place a `kind + id` pair is allowed (AutoCare
+  and the audit log is the one place a `kind + id` pair is allowed (mCart
   §8a D3).
   """
 
@@ -52,6 +57,8 @@ defmodule Core.Audit.Labels do
     %{}
     |> direct(by_kind)
     |> through_user(by_kind)
+    |> share_links(by_kind["share_links"] || [])
+    |> leads(by_kind["leads"] || [])
     |> Map.merge(users(by_kind["users"] || []))
   end
 
@@ -77,6 +84,38 @@ defmodule Core.Audit.Labels do
         |> Repo.all()
         |> Enum.reduce(acc, fn {id, label}, acc -> Map.put(acc, {kind, id}, label) end)
     end
+  end
+
+  # A link's label is its item's title.
+  defp share_links(acc, []), do: acc
+
+  defp share_links(acc, ids) do
+    from(l in Data.ShareLinks.ShareLink,
+      left_join: t in assoc(l, :task),
+      left_join: j in assoc(l, :job),
+      left_join: ld in assoc(l, :lead),
+      left_join: lj in assoc(ld, :job),
+      where: l.id in ^ids,
+      select: {l.id, coalesce(t.title, coalesce(j.title, lj.title))}
+    )
+    |> Repo.all()
+    |> Enum.reduce(acc, fn {id, label}, acc -> Map.put(acc, {"share_links", id}, label) end)
+  end
+
+  # A lead (AQ-04A) reads as its job's title and its profile's.
+  defp leads(acc, []), do: acc
+
+  defp leads(acc, ids) do
+    from(l in Data.Leads.Lead,
+      join: j in assoc(l, :job),
+      join: p in assoc(l, :profile),
+      where: l.id in ^ids,
+      select: {l.id, j.title, p.title}
+    )
+    |> Repo.all()
+    |> Enum.reduce(acc, fn {id, job, profile}, acc ->
+      Map.put(acc, {"leads", id}, "#{job} · #{profile}")
+    end)
   end
 
   defp users([]), do: %{}

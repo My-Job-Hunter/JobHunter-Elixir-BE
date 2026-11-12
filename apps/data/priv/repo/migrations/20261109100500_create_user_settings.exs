@@ -2,9 +2,9 @@ defmodule Data.Repo.Migrations.CreateUserSettings do
   use Ecto.Migration
 
   @moduledoc """
-  A person's settings, 1:1 with their account (JH-01 §4.1): the theme, quiet
+  A person's settings, 1:1 with their account (AQ-01 §4.1): the theme, quiet
   hours (null = off) and the daily digest. **Code defaults when no row**
-  (AutoCare's pattern): a new account renders a screen before anybody opens
+  (mCart's pattern): a new account renders a screen before anybody opens
   the settings page. The notification groups' preferences come in P8.
   """
 

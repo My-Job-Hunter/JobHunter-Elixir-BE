@@ -1,5 +1,5 @@
 defmodule ApiTeam.TeamController do
-  @moduledoc "Teams, their settings and their members (JH-01 §6.2)."
+  @moduledoc "Teams, their settings and their members (AQ-01 §6.2)."
 
   use Phoenix.Controller, formats: [:json]
 

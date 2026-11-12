@@ -58,12 +58,20 @@ defmodule Data.TeamsTest do
     assert errors_on(cs).role
   end
 
-  test "settings: code defaults until written" do
+  test "settings: code defaults until written (QT-4: view · view · edit)" do
     org = organisation_fixture()
     team = team_fixture(org)
-    assert Teams.get_settings(team.id).members_see_peer_tasks == false
-    assert {:ok, row} = Teams.put_settings(team.id, %{members_see_peer_tasks: true})
-    assert row.members_see_peer_tasks == true and row.customer_sees_staff_names == true
+    defaults = Teams.get_settings(team.id)
+    assert {defaults.peer_tasks, defaults.peer_leads, defaults.peer_jobs} == {:view, :view, :edit}
+
+    assert {:ok, row} = Teams.put_settings(team.id, %{peer_tasks: "hidden"})
+    assert row.peer_tasks == :hidden and row.peer_jobs == :edit and row.customer_sees_staff_names
+  end
+
+  test "settings: a level off the vocabulary is refused" do
+    team = team_fixture(organisation_fixture())
+    assert {:error, cs} = Teams.put_settings(team.id, %{peer_jobs: "sometimes"})
+    assert errors_on(cs).peer_jobs
   end
 
   test "memberships_of and memberships_in carry the teams and people" do

@@ -1,6 +1,6 @@
 defmodule Data.Teams do
   @moduledoc """
-  Teams, their members and their settings (JH-01 §4.2). Storage only; the
+  Teams, their members and their settings (AQ-01 §4.2). Storage only; the
   guards (a team keeps a lead, a lead promotes nobody above lead) are
   `Core.Organisation.Teams`'s.
   """
@@ -58,7 +58,7 @@ defmodule Data.Teams do
 
   # ── Members ─────────────────────────────────────────────────────────────────
 
-  @doc "The open memberships of a team, with users and persons, managers first."
+  @doc "The open memberships of a team, with users and persons, oldest first."
   @spec list_members(binary()) :: [TeamMember.t()]
   def list_members(team_id) do
     from(m in TeamMember,

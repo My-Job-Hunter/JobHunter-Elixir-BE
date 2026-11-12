@@ -13,6 +13,7 @@ defmodule ApiTeam.TeamControllerTest do
 
   test "GET /teams, POST /teams, GET/PATCH /teams/:id, archive", %{
     admin: admin,
+    lead: lead,
     member: member,
     backend: backend,
     frontend: frontend
@@ -38,6 +39,9 @@ defmodule ApiTeam.TeamControllerTest do
 
     assert call(admin, :post, "/v1/teams", %{name: ""}).status == 422
     assert code(call(member, :post, "/v1/teams", %{name: "Nope"})) == "forbidden"
+    assert code(call(lead, :post, "/v1/teams", %{name: "Nope"})) == "forbidden"
+    assert code(call(lead, :patch, "/v1/teams/#{backend.id}", %{name: "Nope"})) == "forbidden"
+    assert code(call(lead, :post, "/v1/teams/#{backend.id}/archive")) == "forbidden"
 
     assert body(call(member, :get, "/v1/teams/#{backend.id}"))["name"] == "Backend squad"
     assert call(member, :get, "/v1/teams/#{frontend.id}").status == 404
@@ -55,13 +59,31 @@ defmodule ApiTeam.TeamControllerTest do
   } do
     conn = call(lead, :get, "/v1/teams/#{backend.id}/settings")
     assert conn.status == 200
-    assert body(conn)["customer_sees_staff_names"] == true
-    assert map_size(body(conn)) == 6
+
+    assert body(conn) == %{
+             "peer_tasks" => "view",
+             "peer_leads" => "view",
+             "peer_jobs" => "edit",
+             "customer_sees_staff_names" => true,
+             "customer_sees_conversations" => true,
+             "customer_sees_job_suggestions" => false
+           }
 
     conn =
-      call(lead, :put, "/v1/teams/#{backend.id}/settings", %{customer_sees_staff_names: false})
+      call(lead, :put, "/v1/teams/#{backend.id}/settings", %{
+        customer_sees_staff_names: false,
+        peer_tasks: "hidden"
+      })
 
-    assert body(conn)["customer_sees_staff_names"] == false
+    assert %{
+             "customer_sees_staff_names" => false,
+             "peer_tasks" => "hidden",
+             "peer_jobs" => "edit"
+           } =
+             body(conn)
+
+    conn = call(lead, :put, "/v1/teams/#{backend.id}/settings", %{peer_jobs: "sometimes"})
+    assert conn.status == 422 and Map.has_key?(body(conn)["error"]["details"], "peer_jobs")
     assert call(member, :get, "/v1/teams/#{backend.id}/settings").status == 403
   end
 
@@ -76,19 +98,29 @@ defmodule ApiTeam.TeamControllerTest do
     assert Enum.map(body(conn), & &1["role"]) |> Enum.sort() == ["lead", "member"]
     assert Enum.all?(body(conn), &Map.has_key?(&1, "display_name"))
 
-    above =
-      call(lead, :post, "/v1/teams/#{backend.id}/members/#{member.id}/role", %{role: "manager"})
+    # §8.5: roles are the system admin's; a team lead is refused in its words.
+    refused =
+      call(lead, :post, "/v1/teams/#{backend.id}/members/#{member.id}/role", %{role: "lead"})
 
-    assert above.status == 403
-    assert body(above)["error"]["code"] == "role_above_yours"
-    assert body(above)["error"]["message"] == "Only a manager can make a manager."
+    assert refused.status == 403
+    assert body(refused)["error"]["message"] == "Only the system admin can do that."
 
-    conn = call(lead, :post, "/v1/teams/#{backend.id}/members/#{member.id}/role", %{role: "lead"})
+    no_manager =
+      call(admin, :post, "/v1/teams/#{backend.id}/members/#{member.id}/role", %{role: "manager"})
+
+    assert no_manager.status == 422
+
+    conn =
+      call(admin, :post, "/v1/teams/#{backend.id}/members/#{member.id}/role", %{role: "lead"})
+
     assert conn.status == 200
     assert body(conn)["role"] == "lead"
 
-    assert call(lead, :post, "/v1/teams/#{backend.id}/members/#{member.id}/role", %{}).status ==
+    assert call(admin, :post, "/v1/teams/#{backend.id}/members/#{member.id}/role", %{}).status ==
              422
+
+    # A team lead removes staff, never another lead.
+    assert call(lead, :delete, "/v1/teams/#{backend.id}/members/#{member.id}").status == 403
 
     # The team keeps a lead: both are leads now, so one may go.
     assert call(admin, :delete, "/v1/teams/#{backend.id}/members/#{member.id}").status == 204
@@ -102,6 +134,6 @@ defmodule ApiTeam.TeamControllerTest do
     _member = member_fixture(team, :member)
     refused = call(admin, :delete, "/v1/teams/#{team.id}/members/#{only_lead.id}")
     assert refused.status == 403
-    assert body(refused)["error"]["message"] =~ "needs a lead or a manager"
+    assert body(refused)["error"]["message"] =~ "needs a lead"
   end
 end

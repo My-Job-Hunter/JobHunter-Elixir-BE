@@ -1,6 +1,6 @@
 defmodule Api.UserSocketTest do
   @moduledoc """
-  The socket accepts an access token and nothing else (JH-01 §6.4), through
+  The socket accepts an access token and nothing else (AQ-01 §6.4), through
   `Phoenix.ChannelTest`, which runs the real `connect/3` the transport runs.
   """
 

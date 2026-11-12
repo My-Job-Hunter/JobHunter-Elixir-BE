@@ -8,7 +8,7 @@ defmodule ApiShared.MeControllerTest do
     org = organisation_fixture(name: "Regbits BD")
     team = team_fixture(org, name: "Backend squad")
     admin = admin_fixture(org)
-    member_fixture(team, :manager, admin)
+    member_fixture(team, :lead, admin)
     %{org: org, team: team, admin: admin}
   end
 
@@ -46,7 +46,26 @@ defmodule ApiShared.MeControllerTest do
            } = body(conn)
 
     assert user_id == admin.id and email == admin.email and org_id == org.id
-    assert team_json == %{"team_id" => team.id, "name" => "Backend squad", "role" => "manager"}
+    assert team_json == %{"team_id" => team.id, "name" => "Backend squad", "role" => "lead"}
+  end
+
+  test "GET /me lists the switcher's teams by name; an admin's every team, admin where in none (AQ-03B §5.1)",
+       %{org: org, team: team, admin: admin} do
+    frontend = team_fixture(org, name: "Frontend squad")
+    archived = team_fixture(org, name: "Archived squad")
+    {:ok, _gone} = Data.Teams.archive(archived, DateTime.utc_now())
+
+    assert body(request(build(:get, "/v1/me") |> authed(admin)))["teams"] == [
+             %{"id" => team.id, "name" => "Backend squad", "role" => "lead"},
+             %{"id" => frontend.id, "name" => "Frontend squad", "role" => "admin"}
+           ]
+
+    fiza = member_fixture(frontend, :member)
+    member_fixture(archived, :lead, fiza)
+
+    assert body(request(build(:get, "/v1/me") |> authed(fiza)))["teams"] == [
+             %{"id" => frontend.id, "name" => "Frontend squad", "role" => "member"}
+           ]
   end
 
   test "GET /me without a token is 401" do

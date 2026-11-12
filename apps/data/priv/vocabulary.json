@@ -9,6 +9,18 @@
     "recruiter_inbound",
     "other"
   ],
+  "approval_decisions": [
+    "approved",
+    "changes_requested",
+    "rejected"
+  ],
+  "approval_effects": [
+    "none",
+    "ready",
+    "sent",
+    "applied",
+    "failed"
+  ],
   "approval_kinds": [
     "reply",
     "proposal",
@@ -19,6 +31,16 @@
     "profile_change",
     "other"
   ],
+  "approval_needs": [
+    "customer",
+    "team_lead",
+    "both",
+    "ad_hoc"
+  ],
+  "approval_rules": [
+    "any",
+    "all"
+  ],
   "approval_states": [
     "draft",
     "pending",
@@ -27,6 +49,17 @@
     "rejected",
     "withdrawn",
     "expired"
+  ],
+  "bid_periods": [
+    "hour",
+    "project"
+  ],
+  "board_lanes": [
+    "none",
+    "customer",
+    "profile",
+    "owner",
+    "source"
   ],
   "channel_listeners": [
     "none",
@@ -52,11 +85,62 @@
     "year",
     "project"
   ],
+  "comp_sources": [
+    "employer",
+    "platform_estimate",
+    "parsed_text"
+  ],
+  "company_size_bands": [
+    "1_10",
+    "11_50",
+    "51_200",
+    "201_500",
+    "501_1000",
+    "1001_5000",
+    "5001_plus"
+  ],
+  "contact_handle_kinds": [
+    "email",
+    "linkedin",
+    "upwork",
+    "phone",
+    "other"
+  ],
+  "contact_roles": [
+    "recruiter",
+    "hiring_manager",
+    "interviewer",
+    "client",
+    "referrer",
+    "other"
+  ],
+  "contact_sources": [
+    "manual",
+    "email",
+    "extension",
+    "import"
+  ],
   "customer_statuses": [
     "invited",
     "active",
     "paused",
     "ended"
+  ],
+  "delivery_channels": [
+    "push",
+    "email",
+    "extension"
+  ],
+  "delivery_skip_reasons": [
+    "read",
+    "no_target",
+    "preference_off"
+  ],
+  "delivery_states": [
+    "pending",
+    "sent",
+    "skipped",
+    "failed"
   ],
   "document_kinds": [
     "cv",
@@ -64,6 +148,12 @@
     "portfolio",
     "certificate",
     "other"
+  ],
+  "durations": [
+    "lt_1m",
+    "1_3m",
+    "3_6m",
+    "gt_6m"
   ],
   "engagement_types": [
     "full_time",
@@ -75,6 +165,118 @@
     "temporary",
     "other"
   ],
+  "equity_kinds": [
+    "options",
+    "rsu",
+    "profit_share",
+    "unknown"
+  ],
+  "event_actors": [
+    "user",
+    "customer",
+    "extension",
+    "email",
+    "system"
+  ],
+  "event_visibilities": [
+    "staff",
+    "customer"
+  ],
+  "ext_page_kinds": [
+    "job",
+    "search",
+    "proposal",
+    "confirmation",
+    "thread",
+    "other"
+  ],
+  "ext_sites": [
+    "linkedin",
+    "upwork"
+  ],
+  "job_close_reasons": [
+    "filled",
+    "expired",
+    "withdrawn",
+    "other"
+  ],
+  "job_dismiss_reasons": [
+    "skills",
+    "money",
+    "location",
+    "seniority",
+    "company",
+    "already_known",
+    "other"
+  ],
+  "job_origins": [
+    "manual",
+    "extension",
+    "email",
+    "import"
+  ],
+  "job_sources": [
+    "linkedin",
+    "upwork",
+    "indeed",
+    "yc_waas",
+    "wellfound",
+    "fiverr",
+    "greenhouse",
+    "lever",
+    "ashby",
+    "workable",
+    "company_site",
+    "email",
+    "other"
+  ],
+  "job_statuses": [
+    "open",
+    "closed",
+    "unknown"
+  ],
+  "lead_archive_reasons": [
+    "by_hand",
+    "inactive"
+  ],
+  "lead_confirmations": [
+    "by_hand",
+    "page_confirmation",
+    "confirmation_email"
+  ],
+  "lead_event_kinds": [
+    "saved",
+    "applied",
+    "stage_moved",
+    "state_moved",
+    "outcome_set",
+    "reopened",
+    "owner_changed",
+    "pipeline_changed",
+    "cv_set",
+    "archived",
+    "unarchived",
+    "note_added",
+    "task_created",
+    "task_done",
+    "follow_up_due",
+    "follow_up_logged",
+    "archive_warned",
+    "labelled",
+    "message_in",
+    "message_out",
+    "conversation_linked",
+    "contact_linked",
+    "contact_unlinked",
+    "meeting_scheduled",
+    "meeting_changed",
+    "meeting_done",
+    "meeting_cancelled",
+    "classified",
+    "approval_requested",
+    "approval_decided",
+    "approval_withdrawn"
+  ],
   "lead_outcomes": [
     "hired",
     "rejected",
@@ -83,12 +285,27 @@
     "no_response",
     "not_pursued"
   ],
+  "lead_priorities": [
+    "low",
+    "high",
+    "urgent"
+  ],
   "lead_states": [
-    "to_do",
+    "todo",
     "in_progress",
     "on_hold",
-    "done",
-    "archived"
+    "done"
+  ],
+  "match_confidences": [
+    "sure",
+    "likely"
+  ],
+  "match_methods": [
+    "by_hand",
+    "headers",
+    "thread_id",
+    "sender_handle",
+    "created_from_triage"
   ],
   "meeting_kinds": [
     "screening",
@@ -108,6 +325,56 @@
     "on_site",
     "other"
   ],
+  "meeting_sources": [
+    "manual",
+    "email_invite",
+    "extension"
+  ],
+  "meeting_statuses": [
+    "scheduled",
+    "done",
+    "cancelled",
+    "no_show"
+  ],
+  "message_captures": [
+    "manual",
+    "eml_upload",
+    "extension",
+    "forward",
+    "oauth_sync"
+  ],
+  "message_classes": [
+    "interested",
+    "interview_invitation",
+    "more_info",
+    "rejection",
+    "position_closed",
+    "unsubscribe",
+    "bounce",
+    "general"
+  ],
+  "message_directions": [
+    "in",
+    "out"
+  ],
+  "message_from_kinds": [
+    "contact",
+    "user",
+    "customer",
+    "text"
+  ],
+  "notification_channels": [
+    "inapp",
+    "push",
+    "email",
+    "extension",
+    "digest"
+  ],
+  "peer_access": [
+    "hidden",
+    "view",
+    "edit"
+  ],
   "pipeline_keys": [
     "employment",
     "freelance"
@@ -126,12 +393,47 @@
     "active",
     "paused"
   ],
+  "push_apps": [
+    "team",
+    "client"
+  ],
+  "regions": [
+    "europe",
+    "eu",
+    "uk_ireland",
+    "north_america",
+    "us",
+    "canada",
+    "latam",
+    "emea",
+    "apac",
+    "mena",
+    "south_asia",
+    "africa",
+    "oceania"
+  ],
+  "remote_scopes": [
+    "global",
+    "region",
+    "country_list",
+    "unknown"
+  ],
+  "reviewer_slots": [
+    "customer",
+    "team_lead",
+    "user"
+  ],
   "roles": [
     "admin",
-    "manager",
     "lead",
     "member",
     "customer"
+  ],
+  "saved_view_screens": [
+    "tracker",
+    "leads",
+    "jobs",
+    "board"
   ],
   "seniorities": [
     "entry",
@@ -141,6 +443,11 @@
     "executive",
     "internship",
     "not_applicable"
+  ],
+  "share_levels": [
+    "summary",
+    "details",
+    "details_history"
   ],
   "skill_levels": [
     "familiar",
@@ -161,19 +468,125 @@
     "negotiation",
     "contract"
   ],
-  "task_statuses": [
+  "suggestion_parts": [
+    "skills",
+    "engagement",
+    "workplace",
+    "money",
+    "timezone",
+    "seniority"
+  ],
+  "task_close_reasons": [
+    "not_needed",
+    "wont_do",
+    "duplicate",
+    "withdrawn"
+  ],
+  "task_customer_access": [
+    "none",
+    "shared",
+    "assigned"
+  ],
+  "task_history_fields": [
+    "created",
+    "title",
+    "description",
+    "state",
+    "stage",
+    "priority",
+    "due",
+    "reminder",
+    "team",
+    "customer",
+    "profile",
+    "customer_access",
+    "private",
+    "assignees",
+    "watchers",
+    "checklist",
+    "step",
+    "link",
+    "relation",
+    "file",
+    "archived"
+  ],
+  "task_priorities": [
+    "low",
+    "high",
+    "urgent"
+  ],
+  "task_relation_kinds": [
+    "relates_to",
+    "blocks",
+    "duplicates"
+  ],
+  "task_reminders": [
+    0,
+    60,
+    1440
+  ],
+  "task_sources": [
+    "staff",
+    "customer"
+  ],
+  "task_states": [
     "draft",
     "todo",
     "in_progress",
     "on_hold",
     "done",
-    "closed",
-    "archived"
+    "closed"
   ],
   "team_member_roles": [
-    "manager",
     "lead",
     "member"
+  ],
+  "tracker_columns": [
+    "applied",
+    "title",
+    "company",
+    "source",
+    "customer",
+    "profile",
+    "owner",
+    "state",
+    "outcome",
+    "next",
+    "last_activity",
+    "money",
+    "workplace",
+    "engagement",
+    "cv",
+    "labels",
+    "missing"
+  ],
+  "tracker_groups": [
+    "none",
+    "state",
+    "stage",
+    "customer",
+    "profile",
+    "owner",
+    "source"
+  ],
+  "upwork_experience_levels": [
+    "entry",
+    "intermediate",
+    "expert"
+  ],
+  "upwork_spent_bands": [
+    "none",
+    "lt_1k",
+    "1k_10k",
+    "10k_100k",
+    "100k_1m",
+    "gt_1m"
+  ],
+  "visa_policies": [
+    "yes",
+    "no",
+    "existing_auth_only",
+    "unknown"
   ],
   "workplace_types": [
     "remote",

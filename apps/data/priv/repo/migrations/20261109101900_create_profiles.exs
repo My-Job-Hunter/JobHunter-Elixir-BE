@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateProfiles do
   use Ecto.Migration
 
   @moduledoc """
-  One way of marketing a customer (JH-01 §4.3; PLAN §4): a title, a pitch,
+  One way of marketing a customer (AQ-01 §4.3; PLAN §4): a title, a pitch,
   skills, a CV. "Golang backend" and "MERN full-stack" are two profiles of
   one customer. `(customer_id, title)` is unique while the profile is live.
 

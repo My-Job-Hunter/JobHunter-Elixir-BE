@@ -48,10 +48,10 @@ defmodule Data.OrganisationsTest do
     assert errors_on(cs).inactivity_days
   end
 
-  test "admins: unique per organisation, counted, listed with their people" do
+  test "the one system admin: one row per organisation, listed with their person, handed on" do
     org = organisation_fixture()
     admin = admin_fixture(org)
-    assert Organisations.count_admins(org.id) == 1
+    assert Organisations.the_admin(org.id).user_id == admin.id
 
     assert [%{user: %{person: %{display_name: "Test Person"}}}] =
              Organisations.list_admins(org.id)
@@ -61,8 +61,19 @@ defmodule Data.OrganisationsTest do
     assert {:error, _cs} =
              Organisations.grant_admin(%{
                organisation_id: org.id,
-               user_id: admin.id,
+               user_id: user_fixture().id,
                granted_at: DateTime.utc_now()
              })
+
+    next = user_fixture()
+
+    assert {:ok, handed} =
+             Organisations.hand_admin(
+               Organisations.the_admin(org.id),
+               next.id,
+               DateTime.utc_now()
+             )
+
+    assert handed.user_id == next.id and Organisations.admin_of(admin.id) == []
   end
 end

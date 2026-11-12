@@ -46,7 +46,7 @@ defmodule Core.Access.GrantsTest do
   test "a membership in an archived team is not a role" do
     org = organisation_fixture()
     team = team_fixture(org)
-    user = member_fixture(team, :manager)
+    user = member_fixture(team, :lead)
     {:ok, _archived} = Data.Teams.archive(team, DateTime.utc_now())
 
     assert Grants.scope_for(user).roles.teams == %{}

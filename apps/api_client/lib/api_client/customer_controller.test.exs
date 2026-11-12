@@ -1,6 +1,6 @@
 defmodule ApiClient.CustomerControllerTest do
   @moduledoc """
-  The portal (JH-01 §6.3), through `ApiClient.Plugs.CustomerScope`: a
+  The portal (AQ-01 §6.3), through `ApiClient.Plugs.CustomerScope`: a
   customer reaches their own rows, a staff account is told
   `not_a_customer`, another customer's rows answer 404.
   """

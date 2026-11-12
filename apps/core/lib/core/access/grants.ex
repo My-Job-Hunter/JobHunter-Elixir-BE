@@ -1,11 +1,11 @@
 defmodule Core.Access.Grants do
   @moduledoc """
-  Resolves who somebody is, once per request, into the scope (JH-01 §5.1).
+  Resolves who somebody is, once per request, into the scope (AQ-01 §5.1).
 
-  `roles` is `%{admin?: boolean, teams: %{team_id => :manager | :lead |
-  :member}, customer_id: id | nil, team_settings: %{team_id => settings}}`:
+  `roles` is `%{admin?: boolean, teams: %{team_id => :lead | :member},
+  customer_id: id | nil, team_settings: %{team_id => settings}}`:
 
-  - `admin?` from `org_admins`;
+  - `admin?` from `org_admins` (the one system admin, AQ-04A §4.0);
   - `teams` from the open `team_members` rows in unarchived teams;
   - `customer_id` from `customers.user_id` — the customer this account signs
     in as, which the portal's `ApiClient.Plugs.CustomerScope` requires and

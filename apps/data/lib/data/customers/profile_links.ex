@@ -1,5 +1,5 @@
 defmodule Data.Customers.ProfileMember do
-  @moduledoc "An owner of a profile (JH-01 §4.3; PLAN §3.2): the staff who hunt for it."
+  @moduledoc "An owner of a profile (AQ-01 §4.3; PLAN §3.2): the staff who hunt for it."
 
   use Data.Schema
 
@@ -26,7 +26,7 @@ defmodule Data.Customers.ProfileMember do
 end
 
 defmodule Data.Customers.ProfileSkill do
-  @moduledoc "A profile's skill with its level (JH-01 §4.3)."
+  @moduledoc "A profile's skill with its level (AQ-01 §4.3)."
 
   use Data.Schema
 
@@ -57,7 +57,7 @@ defmodule Data.Customers.ProfileSkill do
 end
 
 defmodule Data.Customers.ProfileChannel do
-  @moduledoc "A channel a profile works through (JH-01 §4.3; PLAN §4)."
+  @moduledoc "A channel a profile works through (AQ-01 §4.3; PLAN §4)."
 
   use Data.Schema
 
@@ -82,7 +82,7 @@ end
 
 defmodule Data.Customers.ProfileDefaultDocument do
   @moduledoc """
-  A profile's default CV (JH-01 §4.3 `default_document_id`), as a link
+  A profile's default CV (AQ-01 §4.3 `default_document_id`), as a link
   table because `documents` points at `profiles` (see the migration).
   """
 

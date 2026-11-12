@@ -17,6 +17,15 @@ if console_url = System.get_env("CONSOLE_URL") do
   config :notifire, :app_urls, console: console_url, portal: portal_url
 end
 
+# Web Push (AQ-08 §7.6): a server with a VAPID pair sends push; one without
+# sends none, and the screens say "Push isn't set up on this server."
+if vapid_private = System.get_env("VAPID_PRIVATE_KEY") do
+  config :notifire, :web_push,
+    public_key: System.fetch_env!("VAPID_PUBLIC_KEY"),
+    private_key: vapid_private,
+    subject: System.get_env("VAPID_SUBJECT", "mailto:support@autoqare.com")
+end
+
 if config_env() == :prod do
   # Never the stand-in in a release.
   config :core, :google, stand_in: false
@@ -68,7 +77,7 @@ if config_env() == :prod do
     url:
       require_env.(
         "DATABASE_URL",
-        "e.g. ecto://USER:PASS@HOST:5432/job_hunter_prod"
+        "e.g. ecto://USER:PASS@HOST:5432/autoqare_prod"
       ),
     show_sensitive_data_on_connection_error: false,
     pool_size: get_int.("POOL_SIZE", 10)
@@ -79,7 +88,7 @@ if config_env() == :prod do
     |> require_env.("""
     The apps' origins, comma-separated — the team console and the customer portal:
 
-        CORS_ORIGINS=https://team.example.com,https://portal.example.com
+        CORS_ORIGINS=https://team.autoqare.com,https://autoqare.com
     """)
     |> String.split(",", trim: true)
     |> Enum.map(&String.trim/1)

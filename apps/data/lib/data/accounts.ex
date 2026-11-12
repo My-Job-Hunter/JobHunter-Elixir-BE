@@ -218,6 +218,7 @@ defmodule Data.Accounts do
   defdelegate get_token_for_system(id), to: Tokens
   defdelegate mark_token_sent(token, at), to: Tokens
   defdelegate consume_tokens(user, purposes, at), to: Tokens
+  defdelegate consume_token(token, at), to: Tokens
   defdelegate confirm_email(token, at), to: Tokens
 
   defdelegate list_sessions(user_id, now), to: Sessions

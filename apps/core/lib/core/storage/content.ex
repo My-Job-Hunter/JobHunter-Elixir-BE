@@ -1,6 +1,6 @@
 defmodule Core.Storage.Content do
   @moduledoc """
-  What a file actually is, read from its bytes (JH-01 QP1-3: *bytes sniffed*).
+  What a file actually is, read from its bytes (AQ-01 QP1-3: *bytes sniffed*).
 
   > **The allowlist is checked against the bytes, not the header.** A
   > client-supplied `Content-Type` is a claim.
@@ -37,6 +37,8 @@ defmodule Core.Storage.Content do
   `text/plain`.
   """
   @spec matches?(binary(), String.t()) :: boolean()
+  def matches?(bytes, "message/rfc822"), do: email?(bytes)
+
   def matches?(bytes, declared) do
     case detect(bytes) do
       nil -> false
@@ -44,5 +46,20 @@ defmodule Core.Storage.Content do
       "text/plain" -> declared == "text/markdown"
       _other -> false
     end
+  end
+
+  @doc """
+  Whether the bytes are an email (AQ-06 §7.1): no NUL byte, and they open
+  with RFC 5322 header fields — a name, a colon — before a blank line, a
+  `From:` among them. Text to the sniffer otherwise, so an `eml` row is
+  the one kind that accepts them as an email.
+  """
+  @spec email?(binary()) :: boolean()
+  def email?(bytes) do
+    head = binary_part(bytes, 0, min(byte_size(bytes), 16_384))
+
+    not String.contains?(bytes, <<0>>) and
+      Regex.match?(~r/\A(?:[!-9;-~]+:[^\r\n]*\r?\n(?:[ \t][^\r\n]*\r?\n)*)+/, head) and
+      Regex.match?(~r/^from:/im, head)
   end
 end

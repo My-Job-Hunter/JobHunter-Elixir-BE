@@ -1,27 +1,30 @@
 defmodule Data.Fixtures do
   @moduledoc """
-  Test data (JH-01 §8). **Fixtures take or create a scope**, so it is
-  impossible to build test data that could not exist in production: a
-  membership always has both sides, an admin always has an organisation, a
-  profile always has a customer.
-
-  They write through `Data.*` directly rather than the contexts, so a context
-  test does not depend on the thing it tests. `scope_for/1` and
-  `customer_scope_for/1` resolve roles the way the plugs do
-  (`Core.Access.Grants`, `ApiClient.Plugs.CustomerScope`), but through
-  `Data.*` here, because `data` cannot name `core`.
+  Test data (AQ-01 §8). **Fixtures take or create a scope**, so test data
+  that could not exist in production cannot be built: a membership has both
+  sides, an admin an organisation, a profile a customer. They write through
+  `Data.*` rather than the contexts, so a context test does not depend on
+  the thing it tests; `scope_for/1` and `customer_scope_for/1` resolve roles
+  as the plugs do (`Core.Access.Grants`, `ApiClient.Plugs.CustomerScope`),
+  through `Data.*`, because `data` cannot name `core`.
   """
 
   alias Data.Accounts
   alias Data.Channels
   alias Data.Customers
   alias Data.Documents
+  alias Data.Fixtures.Notifications, as: Notices
   alias Data.Invitations
   alias Data.Invitations.Invitation
   alias Data.Organisations
   alias Data.Profiles
+  alias Data.Repo
   alias Data.Scope
   alias Data.Skills
+  alias Data.TaskComments
+  alias Data.TaskParts
+  alias Data.Tasks
+  alias Data.Tasks.Participant
   alias Data.Teams
 
   @password "correct horse battery"
@@ -84,7 +87,7 @@ defmodule Data.Fixtures do
   end
 
   @doc """
-  Somebody in `team` as `role` (`:manager`, `:lead` or `:member`): a new
+  Somebody in `team` as `role` (`:lead` or `:member`): a new
   account unless `user` is given. Answers the user.
   """
   def member_fixture(team, role, user \\ nil) do
@@ -138,7 +141,7 @@ defmodule Data.Fixtures do
 
     {:ok, customer} =
       attrs
-      |> Map.drop([:login])
+      |> Map.drop([:login, :login_name])
       |> Enum.into(%{
         organisation_id: organisation.id,
         display_name: "Customer #{n}",
@@ -149,7 +152,9 @@ defmodule Data.Fixtures do
     for team <- teams, do: {:ok, _link} = Customers.assign_team(customer, team.id, @today)
 
     if attrs[:login] do
-      user = user_fixture(email: customer.email, display_name: customer.display_name)
+      # `login_name:` names the account apart from the customer, as people sign up.
+      name = attrs[:login_name] || customer.display_name
+      user = user_fixture(email: customer.email, display_name: name)
       {:ok, _joined} = Customers.attach_login(customer, user.id, @today)
     end
 
@@ -216,6 +221,207 @@ defmodule Data.Fixtures do
 
     skill
   end
+
+  # ── The board (AQ-02 §11) ───────────────────────────────────────────────────
+
+  @doc """
+  The P1 cast (PLAN §17) for a board test: Backend and Frontend squads;
+  Dawud the system admin, in no team (AQ-04A §4.0); Hira lead of both; Bilal lead of
+  Backend; Fiza member of both; Qasim and Muaz members of Backend;
+  Tanweer, Naveed (Backend) and Imran (Frontend) signed in; Sara (Backend)
+  invited only; Tanweer's *Golang backend* profile owned by Fiza, then Qasim.
+  """
+  def board_cast_fixture do
+    org = organisation_fixture(name: "Regbits BD")
+    backend = team_fixture(org, name: "Backend squad")
+    frontend = team_fixture(org, name: "Frontend squad")
+    dawud = admin_fixture(org, display_name: "Dawud Kalim")
+    hira = member_fixture(backend, :lead, user_fixture(display_name: "Hira Khan"))
+    member_fixture(frontend, :lead, hira)
+    bilal = member_fixture(backend, :lead, user_fixture(display_name: "Bilal"))
+    fiza = member_fixture(backend, :member, user_fixture(display_name: "Fiza"))
+    member_fixture(frontend, :member, fiza)
+    qasim = member_fixture(backend, :member, user_fixture(display_name: "Qasim"))
+    muaz = member_fixture(backend, :member, user_fixture(display_name: "Muaz"))
+
+    tanweer =
+      customer_fixture(org, [backend],
+        display_name: "Tanweer",
+        login: true,
+        login_name: "Muhammad Tanweer"
+      )
+
+    %{
+      org: org,
+      backend: backend,
+      frontend: frontend,
+      dawud: dawud,
+      hira: hira,
+      bilal: bilal,
+      fiza: fiza,
+      qasim: qasim,
+      muaz: muaz,
+      tanweer: tanweer,
+      naveed: customer_fixture(org, [backend], display_name: "Naveed", login: true),
+      imran: customer_fixture(org, [frontend], display_name: "Imran", login: true),
+      sara: customer_fixture(org, [backend], display_name: "Sara"),
+      golang: profile_fixture(tanweer, title: "Golang backend", owners: [fiza, qasim])
+    }
+  end
+
+  @doc """
+  A task written by `scope`'s person (or, from a portal scope, the
+  customer's own: `source: :customer`, shared). Every task is in a team
+  (AQ-03B): `team:`, else the scope's first team by name (a customer's: the
+  first team serving them). Attrs are the columns, plus `customer:`, `profile:` (structs), `primary:` and `secondary:`
+  (users), `watchers:` (users), `checklist:` (texts) and a `state:` of any
+  of the six — each with the columns it needs.
+  """
+  def task_fixture(%Scope{} = scope, attrs \\ %{}) do
+    attrs = Map.new(attrs)
+    state = attrs[:state] || :todo
+    base = task_base(scope, attrs, state)
+
+    {:ok, task} =
+      attrs
+      |> Map.drop([
+        :team,
+        :customer,
+        :profile,
+        :primary,
+        :secondary,
+        :watchers,
+        :checklist,
+        :state
+      ])
+      |> then(&Map.merge(base, &1))
+      |> Tasks.create()
+
+    :ok = Tasks.put_assignees(task, attrs[:primary] && attrs[:primary].id, ids(attrs[:secondary]))
+
+    for watcher <- List.wrap(attrs[:watchers]),
+        do: Tasks.put_flag(task, watcher.id, :is_watcher, true)
+
+    for text <- List.wrap(attrs[:checklist]), do: {:ok, _item} = TaskParts.add_item(task.id, text)
+
+    task |> Tasks.reload() |> put_state(state, Scope.user_id(scope))
+  end
+
+  defp task_base(scope, attrs, state) do
+    customer? = not is_nil(Scope.customer_id(scope))
+
+    %{
+      organisation_id: Scope.organisation_id(scope),
+      author_user_id: Scope.user_id(scope),
+      title: "Task #{System.unique_integer([:positive])}",
+      source: if(customer?, do: :customer, else: :staff),
+      customer_access: if(customer?, do: :shared, else: :none),
+      customer_id: id_of(attrs[:customer]) || Scope.customer_id(scope),
+      team_id: id_of(attrs[:team]) || default_team(scope),
+      profile_id: id_of(attrs[:profile]),
+      state: if(state == :draft, do: :draft, else: :todo)
+    }
+  end
+
+  @doc """
+  The team a fixture lands in when none is named: the scope's first team by
+  name; for a portal scope, the first team serving the customer. Raises for
+  a scope in no team (an admin outside every team must name one).
+  """
+  def default_team(%Scope{} = scope) do
+    ids =
+      case Scope.customer_id(scope) do
+        nil -> Scope.team_ids(scope)
+        id -> Customers.get(Scope.organisation_id(scope), id).team_ids
+      end
+
+    case ids != [] && Teams.list(Scope.organisation_id(scope), ids: ids) do
+      [team | _rest] -> team.id
+      _none -> raise ArgumentError, "this scope is in no team: name one with team:"
+    end
+  end
+
+  defp id_of(nil), do: nil
+  defp id_of(%{id: id}), do: id
+
+  defp ids(nil), do: []
+  defp ids(users), do: Enum.map(users, & &1.id)
+
+  defp put_state(task, state, _user_id) when state in [:draft, :todo], do: task
+
+  defp put_state(task, state, user_id) do
+    at = now()
+
+    extra =
+      case state do
+        :in_progress -> %{}
+        :on_hold -> %{held_at: at, hold_reason: "Waiting", held_from_state: :todo}
+        :done -> %{done_at: at, done_by_user_id: user_id}
+        :closed -> %{closed_at: at, closed_reason: :not_needed, closed_by_user_id: user_id}
+      end
+
+    {:ok, moved} = Tasks.move(task, Map.put(extra, :state, state))
+    moved
+  end
+
+  @doc "A participant row: `level:` (`:primary`, `:secondary`), `is_watcher:`, `is_muted:`."
+  def participant_fixture(task, user, attrs \\ %{}) do
+    %Participant{}
+    |> Participant.changeset(Map.merge(%{task_id: task.id, user_id: user.id}, Map.new(attrs)))
+    |> Repo.insert!()
+  end
+
+  @doc "A step of `task`: `assignee:` a user, or `is_for_customer: true`."
+  def step_fixture(task, attrs \\ %{}) do
+    attrs = Map.new(attrs)
+    n = System.unique_integer([:positive])
+
+    {:ok, step} =
+      TaskParts.add_step(task.id, %{
+        title: attrs[:title] || "Step #{n}",
+        assignee_user_id: attrs[:assignee] && attrs[:assignee].id,
+        is_for_customer: attrs[:is_for_customer] || false
+      })
+
+    step
+  end
+
+  @doc "A comment on `task` by `scope`'s person; staff-only when `staff_only?`."
+  def comment_fixture(%Scope{} = scope, task, staff_only? \\ false) do
+    {:ok, comment} =
+      TaskComments.create_comment(%{
+        task_id: task.id,
+        author_user_id: Scope.user_id(scope),
+        body: "Comment #{System.unique_integer([:positive])}",
+        is_staff_only: staff_only?
+      })
+
+    comment
+  end
+
+  # ── The pool, leads, the extension, P6, P7, P8 (AQ-03 §11 … AQ-08 §14): their own files
+
+  defdelegate company_fixture(organisation, attrs \\ %{}), to: Data.Fixtures.Jobs
+  defdelegate job_fixture(scope, attrs \\ %{}), to: Data.Fixtures.Jobs
+  defdelegate in_team(params, scope), to: Data.Fixtures.Jobs
+  defdelegate pipeline_fixture(scope, attrs \\ %{}), to: Data.Fixtures.Leads
+  defdelegate lead_fixture(scope, attrs \\ %{}), to: Data.Fixtures.Leads
+  defdelegate note_fixture(scope, lead, attrs \\ %{}), to: Data.Fixtures.Leads
+  defdelegate label_fixture(scope, team, attrs \\ %{}), to: Data.Fixtures.Leads
+  defdelegate fingerprint_fixture(scope, job, profile, attrs \\ %{}), to: Data.Fixtures.Leads
+  defdelegate device_fixture(scope, attrs \\ %{}), to: Data.Fixtures.Extension
+  defdelegate signal_fixture(job, attrs \\ %{}), to: Data.Fixtures.Extension
+  defdelegate config_fixture(site, attrs \\ %{}), to: Data.Fixtures.Extension
+  defdelegate contact_fixture(scope, attrs \\ %{}), to: Data.Fixtures.Conversations
+  defdelegate conversation_fixture(scope, attrs \\ %{}), to: Data.Fixtures.Conversations
+  defdelegate message_fixture(scope, attrs \\ %{}), to: Data.Fixtures.Conversations
+  defdelegate meeting_fixture(scope, attrs \\ %{}), to: Data.Fixtures.Conversations
+  defdelegate approval_fixture(scope, attrs \\ %{}), to: Data.Fixtures.Approvals
+  defdelegate policy_fixture(customer, attrs \\ %{}), to: Data.Fixtures.Approvals
+  defdelegate notification_fixture(organisation, user, attrs \\ %{}), to: Notices
+  defdelegate push_subscription_fixture(user, attrs \\ %{}), to: Notices
+  defdelegate preference_fixture(user, group_key, switches \\ %{}), to: Notices
+  defdelegate delivery_fixture(notification, attrs \\ %{}), to: Notices
 
   # ── Scopes ──────────────────────────────────────────────────────────────────
 

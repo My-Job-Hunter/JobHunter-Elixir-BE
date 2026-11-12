@@ -1,5 +1,5 @@
 defmodule ApiTeam.InvitationJSON do
-  @moduledoc "The invitations' shapes (JH-01 §6.2), with their state and accept link."
+  @moduledoc "The invitations' shapes (AQ-01 §6.2), with their state and accept link."
 
   alias Core.Organisation.Invitations
   alias Data.Invitations.Invitation

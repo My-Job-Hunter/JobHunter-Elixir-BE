@@ -22,7 +22,7 @@ defmodule Core.Application do
     ]
 
     # Every sign-in writes two `guardian_tokens` rows and nothing else deletes
-    # an expired one (AutoCare's `PA6`): the sweeper is what stops the table
+    # an expired one (mCart's `PA6`): the sweeper is what stops the table
     # growing for ever. **Off in tests**, where the SQL sandbox owns the
     # connection and a periodic delete from a process no case checked out
     # would fail rather than sweep.

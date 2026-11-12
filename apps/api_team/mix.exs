@@ -35,10 +35,15 @@ defmodule ApiTeam.MixProject do
 
   # In-umbrella only. Third-party deps live in `utils`. Never `api`: the
   # endpoint sits on top of every API app.
+  #
+  # `notifire` for the dev routes alone (AQ-08 §11.3): `POST /dev/sweeps`
+  # runs the delivery sweep and answers its counts, and `/dev/push/json`
+  # reads the push outbox. An API app may call `notifire`; `core` never.
   defp deps do
     [
       {:api_shared, in_umbrella: true},
       {:core, in_umbrella: true},
+      {:notifire, in_umbrella: true},
       {:utils, in_umbrella: true}
     ]
   end

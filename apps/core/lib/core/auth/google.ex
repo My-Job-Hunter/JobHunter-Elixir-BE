@@ -1,6 +1,6 @@
 defmodule Core.Auth.Google do
   @moduledoc """
-  *Continue with Google* (JH-01 QP1-5): proves a Google ID token, and nothing
+  *Continue with Google* (AQ-01 QP1-5): proves a Google ID token, and nothing
   else. What an account does with a proved token is `Core.Accounts`.
 
   **A token is believed only if every check passes:** Google's signature,

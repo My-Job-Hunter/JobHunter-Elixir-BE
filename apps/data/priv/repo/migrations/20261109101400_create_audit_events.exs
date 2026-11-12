@@ -2,10 +2,10 @@ defmodule Data.Repo.Migrations.CreateAuditEvents do
   use Ecto.Migration
 
   @moduledoc """
-  Who did what, on what, before → after (JH-01 §4.2). Written by
+  Who did what, on what, before → after (AQ-01 §4.2). Written by
   `Core.Audit.record/4` inside the same transaction as the write it records.
 
-  **The one place a `kind + id` pair is allowed** (AutoCare §8a D3: audit
+  **The one place a `kind + id` pair is allowed** (mCart §8a D3: audit
   logs): `subject_kind` is the table name, `subject_id` the row. Kept forever
   in P1 (QP1-11).
   """

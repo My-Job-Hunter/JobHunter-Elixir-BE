@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateCustomers do
   use Ecto.Migration
 
   @moduledoc """
-  The people the team hunts for (JH-01 §4.3). A customer is a business row
+  The people the team hunts for (AQ-01 §4.3). A customer is a business row
   first and a login second: `user_id` is null until the invitation is
   accepted, and `status` starts at `invited`. A customer in no team is
   allowed (QP1-8): onboarding happens before the team is chosen.

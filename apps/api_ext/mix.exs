@@ -17,6 +17,7 @@ defmodule ApiExt.MixProject do
       test_paths: ["test", "lib"],
       test_pattern: "*.test.exs",
       test_load_filters: [&String.ends_with?(&1, ".test.exs")],
+      elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [tool: ExCoveralls],
       deps: deps()
     ]
@@ -28,6 +29,9 @@ defmodule ApiExt.MixProject do
   def application do
     [extra_applications: [:logger]]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_env), do: ["lib"]
 
   # In-umbrella only. Third-party deps live in `utils`. Never `api`: the
   # endpoint sits on top of every API app.

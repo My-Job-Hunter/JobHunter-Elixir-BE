@@ -1,12 +1,12 @@
 defmodule Data.Files.Media do
   @moduledoc """
-  A stored file (`media`, JH-01 §4.1): the bytes' key and what they are, and
+  A stored file (`media`, AQ-01 §4.1): the bytes' key and what they are, and
   nothing about what they illustrate.
   """
 
   use Data.Schema
 
-  @kinds ~w(photo document attachment)a
+  @kinds ~w(photo document attachment eml)a
 
   @type t :: %__MODULE__{}
 

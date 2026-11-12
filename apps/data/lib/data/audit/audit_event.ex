@@ -1,7 +1,7 @@
 defmodule Data.Audit.AuditEvent do
   @moduledoc """
-  One audit row (JH-01 §4.2): who, how, what, on what, before → after.
-  The one place a `kind + id` pair is allowed (AutoCare §8a D3).
+  One audit row (AQ-01 §4.2): who, how, what, on what, before → after.
+  The one place a `kind + id` pair is allowed (mCart §8a D3).
   """
 
   use Data.Schema

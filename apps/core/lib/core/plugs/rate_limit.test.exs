@@ -116,6 +116,21 @@ defmodule Core.Plugs.RateLimitTest do
       refute RateLimit.call(conn_for(%{id: Ecto.UUID.generate()}), opts).halted
     end
 
+    # AQ-05 §11.4: 120 a minute per device, so one person's two browsers
+    # have a budget each.
+    test "by: :device keys on the connected extension, not the person" do
+      name = "plugtest#{System.unique_integer([:positive])}"
+      opts = RateLimit.init(name: name, limit: 1, by: :device)
+      user = %{id: Ecto.UUID.generate()}
+      on = fn device -> user |> conn_for() |> Plug.Conn.assign(:device, %{id: device}) end
+
+      first = Ecto.UUID.generate()
+      RateLimit.call(on.(first), opts)
+
+      assert RateLimit.call(on.(first), opts).halted
+      refute RateLimit.call(on.(Ecto.UUID.generate()), opts).halted
+    end
+
     # Behind a load balancer `remote_ip` is the proxy, and keying on it
     # collapses every caller into one bucket.
     test "an anonymous caller is keyed by the forwarded address" do

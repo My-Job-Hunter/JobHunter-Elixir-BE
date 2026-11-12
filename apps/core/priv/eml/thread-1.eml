@@ -1,0 +1,28 @@
+Return-Path: <mei.chen@juniperedge.example>
+Message-ID: <20261102101500.mei-1@juniperedge.example>
+Date: Mon, 02 Nov 2026 10:15:00 +0800
+From: Mei Chen <mei.chen@juniperedge.example>
+To: Tanweer <tanweer@example.com>
+Subject: Platform Engineer role at Juniper Edge
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="b1-juniper"
+
+--b1-juniper
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Hi Tanweer,
+
+I'm a recruiter at Juniper Edge. We're hiring a Platform Engineer (Go, Kubern=
+etes) for our payments team, fully remote within Asia. Your Golang backend =
+work looks like a close fit =E2=80=94 would you be open to a short call this w=
+eek?
+
+Best,
+Mei Chen
+Talent Partner, Juniper Edge
+--b1-juniper
+Content-Type: text/html; charset=utf-8
+
+<p>Hi Tanweer,</p><p>I'm a recruiter at Juniper Edge. We're hiring a <b>Platform Engineer</b> (Go, Kubernetes) for our payments team, fully remote within Asia. Your Golang backend work looks like a close fit &mdash; would you be open to a short call this week?</p><p>Best,<br>Mei Chen<br>Talent Partner, Juniper Edge</p><script>alert('x')</script>
+--b1-juniper--

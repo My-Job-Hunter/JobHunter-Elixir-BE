@@ -13,7 +13,7 @@ defmodule Data.Repo.Migrations.CreateExtensions do
   | `btree_gist` | exclusion constraints, e.g. two meetings for one person at once |
   | `pgcrypto` | token digests |
 
-  **PostGIS is not here** (AutoCare has it): nothing in Job Hunter is a place
+  **PostGIS is not here** (mCart has it): nothing in AutoQare is a place
   on a map until a phase proves otherwise.
 
   All five are trusted or contrib extensions a dev and test superuser can

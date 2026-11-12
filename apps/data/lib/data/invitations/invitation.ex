@@ -1,6 +1,6 @@
 defmodule Data.Invitations.Invitation do
   @moduledoc """
-  One invitation (JH-01 §3, §4.2): what the person becomes, for whom, until
+  One invitation (AQ-01 §3, §4.2): what the person becomes, for whom, until
   when. `state/2` reads it as the screen does: open, accepted, expired,
   revoked.
   """

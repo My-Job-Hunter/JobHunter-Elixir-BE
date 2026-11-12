@@ -1,5 +1,5 @@
 defmodule ApiTeam.DocumentController do
-  @moduledoc "A profile's documents (JH-01 §6.2): versions, the default, the file or the link."
+  @moduledoc "A profile's documents (AQ-01 §6.2): versions, the default, the file or the link."
 
   use Phoenix.Controller, formats: [:json]
 

@@ -11,13 +11,20 @@ defmodule Data.Seeds do
 
   | Kind | Task | Runs | Will hold |
   |---|---|---|---|
-  | `:reference` | `mix jh.seed_reference` | every environment, **test included** | platforms, notification kinds and groups, engine stage kinds |
-  | `:prod` | `mix jh.prod_seed` | a deployment, and every dev database | the reference groups, then the skills vocabulary, the two default pipelines, the default settings |
-  | `:demo` | `mix jh.seed_demo` | dev only | rows no front door can make; the cast itself is made through the front door by each phase's run |
+  | `:reference` | `mix aq.seed_reference` | every environment, **test included** | platforms, notification kinds and groups, engine stage kinds, the extension's selector documents (v1, P5) |
+  | `:prod` | `mix aq.prod_seed` | a deployment, and every dev database | the reference groups, then the skills vocabulary, the two default pipelines, the default settings |
+  | `:demo` | `mix aq.seed_demo` | dev only | rows no front door can make; the cast itself is made through the front door by each phase's run |
 
-  **Every group is empty in P0**: there are no tables for them yet. Each
-  phase adds its groups to `plan/1` with the reason it sits where it does, and
-  `coming/1` loses the line it delivered.
+  **After `:demo`, the standard test set** (`mix aq.seed_standard`, dev
+  only; the user's words of 2026-11-12): Super Admin, Team 1–3 with their
+  leads and staff, three active customers and 21 jobs, every account on
+  `password123` (`docs/TEST-ACCOUNTS.md`). It is not a group here because it
+  is made through the front door's code (`Core.Standard`), which `data`
+  cannot name; the umbrella's `seeds/0` runs the task last.
+
+  Each phase adds its groups to `plan/1` with the reason it sits where it
+  does, and `coming/1` loses the line it delivered: P1 brought the skills
+  vocabulary, P2 the notification groups and kinds.
 
   ## Why nothing but reference runs in test
 
@@ -54,11 +61,35 @@ defmodule Data.Seeds do
   The seeds of one kind, in dependency order.
 
   `:prod` starts with every `:reference` group, so `mix ecto.reset.clean`
-  (drop, create, migrate, `jh.prod_seed`) stands on its own. Groups are
+  (drop, create, migrate, `aq.prod_seed`) stands on its own. Groups are
   idempotent by key, so running reference twice on a dev database is harmless.
   """
   @spec plan(kind()) :: [entry()]
-  def plan(:reference), do: []
+  def plan(:reference) do
+    [
+      %{
+        key: :notifications,
+        module: Data.Seeds.Notifications,
+        fun: :load,
+        label: "the notification groups and kinds",
+        because:
+          "every notification row names its kind by key (P2, AQ-02 §8), so the kinds exist before " <>
+            "anything is ensured — in every environment, the suite included",
+        args: fn _opts -> [[]] end
+      },
+      %{
+        key: :extension_configs,
+        module: Data.Seeds.ExtensionConfigs,
+        fun: :load,
+        label: "the extension's selector documents",
+        because:
+          "the extension reads its live selectors from `GET /ext/v1/config` (P5, AQ-05 §13), so each " <>
+            "site's file is version 1 wherever the table is empty — the suite included; it names " <>
+            "nothing else, so it can sit anywhere in the list",
+        args: fn _opts -> [[]] end
+      }
+    ]
+  end
 
   def plan(:prod) do
     plan(:reference) ++
@@ -86,13 +117,12 @@ defmodule Data.Seeds do
   def coming(:reference) do
     [
       "the platforms (P1.2, with channels)",
-      "the engine stage kinds (P4a, with pipelines)",
-      "the notification kinds and groups (P2, with the bell)"
+      "the engine stage kinds (P4a, with pipelines)"
     ]
   end
 
-  # **Not here: the organisation, its settings, the teams' settings.** JH-01
-  # §3 makes the organisation through `mix jh.bootstrap` (the front door's
+  # **Not here: the organisation, its settings, the teams' settings.** AQ-01
+  # §3 makes the organisation through `mix aq.bootstrap` (the front door's
   # first key), and the 1:1 settings tables answer code defaults until a row
   # is written. Seeding them would be a second way to make the one thing the
   # bootstrap exists to make.

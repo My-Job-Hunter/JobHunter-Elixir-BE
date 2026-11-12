@@ -1,5 +1,5 @@
 defmodule Data.Customers.CustomerTeam do
-  @moduledoc "A team serving a customer (JH-01 §4.3; PLAN Q27: several may)."
+  @moduledoc "A team serving a customer (AQ-01 §4.3; PLAN Q27: several may)."
 
   use Data.Schema
 

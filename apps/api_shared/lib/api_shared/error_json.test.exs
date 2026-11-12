@@ -2,7 +2,7 @@ defmodule ApiShared.ErrorJSONTest do
   @moduledoc """
   The error contract, asserted directly.
 
-  Copied from AutoCare, where the generated version of this file asserted
+  Copied from mCart, where the generated version of this file asserted
   Phoenix's default shape and never ran: it was named `_test.exs`, which
   `test_pattern: "*.test.exs"` does not match. `Core.ConventionsTest` catches
   that class of file.

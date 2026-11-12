@@ -1,6 +1,6 @@
 defmodule Core.Storage do
   @moduledoc """
-  Where uploaded bytes live (AutoCare's seam, trimmed). **One behaviour, one
+  Where uploaded bytes live (mCart's seam, trimmed). **One behaviour, one
   adapter today** (`Core.Storage.Local`, a folder on this box), chosen in
   config so S3 is a config change and not a frontend release — which is the
   whole reason the three-step upload exists.
@@ -29,7 +29,8 @@ defmodule Core.Storage do
     "application/pdf" => ".pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => ".docx",
     "text/plain" => ".txt",
-    "text/markdown" => ".md"
+    "text/markdown" => ".md",
+    "message/rfc822" => ".eml"
   }
 
   @doc """
@@ -64,7 +65,8 @@ defmodule Core.Storage do
 
   @doc """
   The largest upload accepted for a kind of file, in bytes (QP1-3: 5 MB for
-  a photo, 10 MB for a document or attachment). Read here by both halves of
+  a photo, 10 MB for a document or attachment; AQ-06 §11.6: 5 MB for an
+  `eml`). Read here by both halves of
   the upload, so the size the row is validated against and the size the
   bytes are refused at cannot drift.
   """

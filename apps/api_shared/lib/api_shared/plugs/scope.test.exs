@@ -22,6 +22,20 @@ defmodule ApiShared.Plugs.ScopeTest do
     assert scope.via == :web
   end
 
+  test "on /ext the scope is via: :extension (AQ-05 §11.4)" do
+    org = organisation_fixture()
+    admin = admin_fixture(org)
+
+    conn =
+      :get
+      |> build("/v1/me")
+      |> assign(:current_user, admin)
+      |> assign(:app, "ext")
+      |> ScopePlug.call([])
+
+    assert conn.assigns.scope.via == :extension
+  end
+
   test "leaves a conn with nobody alone" do
     conn = build(:get, "/v1/me") |> ScopePlug.call([])
     refute Map.has_key?(conn.assigns, :scope)

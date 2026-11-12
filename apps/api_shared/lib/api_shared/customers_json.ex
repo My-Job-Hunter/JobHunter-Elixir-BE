@@ -1,7 +1,7 @@
 defmodule ApiShared.CustomersJSON do
   @moduledoc """
   The shapes of customers, profiles, channels, documents, notes and skills
-  (JH-01 §4.3, §6.2, §6.3), **shared by the console and the portal** so the
+  (AQ-01 §4.3, §6.2, §6.3), **shared by the console and the portal** so the
   two apps read one field list. Fields are listed one by one — a view that
   serialises a whole struct leaks the next column somebody adds.
 

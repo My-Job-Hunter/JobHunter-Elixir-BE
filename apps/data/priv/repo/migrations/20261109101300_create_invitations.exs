@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateInvitations do
   use Ecto.Migration
 
   @moduledoc """
-  The front door (JH-01 §3, §4.2). Nobody signs up on their own: every account
+  The front door (AQ-01 §3, §4.2). Nobody signs up on their own: every account
   begins here. An invitation names what the person becomes — an **admin**,
   a **team member** (team + role) or a **customer** (the customer record,
   made first by staff).
@@ -48,9 +48,7 @@ defmodule Data.Repo.Migrations.CreateInvitations do
     )
 
     create(
-      constraint(:invitations, :role_known,
-        check: "role IS NULL OR role IN ('manager','lead','member')"
-      )
+      constraint(:invitations, :role_known, check: "role IS NULL OR role IN ('lead','member')")
     )
 
     create(

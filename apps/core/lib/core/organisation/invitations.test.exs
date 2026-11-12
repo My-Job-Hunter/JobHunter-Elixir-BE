@@ -50,11 +50,14 @@ defmodule Core.Organisation.InvitationsTest do
   end
 
   describe "issue" do
-    test "an admin invitation by an admin: a code of the right shape, a week, a mail, an audit row",
+    test "the admin invitation is the bootstrap's (the system), never a route's: a code, a week, a mail, an audit row",
          %{org: org, admin: admin} do
+      assert Invitations.issue(admin, %{"kind" => "admin", "email" => unique_email()}, @now) ==
+               {:error, {:invalid, %{"kind" => ["is team_member or customer"]}}}
+
       assert {:ok, inv, :issued} =
                Invitations.issue(
-                 admin,
+                 Data.Scope.system(org),
                  %{"kind" => "admin", "email" => "Dawud@Example.com", "invited_name" => "Dawud"},
                  @now
                )
@@ -62,23 +65,30 @@ defmodule Core.Organisation.InvitationsTest do
       assert Regex.match?(Invitation.code_shape(), inv.code)
       assert inv.email == "dawud@example.com"
       assert inv.expires_at == DateTime.add(@now, 7, :day)
-      assert inv.invited_by_user_id == admin.user.id
+      assert inv.invited_by_user_id == nil
       assert Invitations.accept_url(inv) == "http://localhost:5800/invite/#{inv.code}"
       assert [%{action: "invited"}] = Audit.list_for_subject(org.id, "invitations", inv.id)
       assert_enqueued(worker: Notifire.Workers.InvitationWorker, args: %{"subject_id" => inv.id})
     end
 
-    test "a team invitation by a lead; a lead may not invite an admin or above lead", %{
-      lead: lead,
-      backend: backend
-    } do
-      assert {:ok, inv, :issued} = team_invite(lead, backend)
-      assert inv.kind == :team_member and inv.role == :lead and inv.team_id == backend.id
+    test "a team lead invites staff to their team; a team lead is the system admin's to invite (§8.5)",
+         %{
+           admin: admin,
+           lead: lead,
+           backend: backend
+         } do
+      assert {:ok, inv, :issued} = team_invite(lead, backend, %{"role" => "member"})
+      assert inv.kind == :team_member and inv.role == :member and inv.team_id == backend.id
 
-      assert {:error, {:forbidden, _words}} =
+      assert team_invite(lead, backend) ==
+               {:error, {:forbidden, "Only the system admin can do that."}}
+
+      assert {:ok, %{role: :lead}, :issued} = team_invite(admin, backend)
+
+      assert {:error, {:invalid, %{"kind" => _}}} =
                Invitations.issue(lead, %{"kind" => "admin", "email" => unique_email()}, @now)
 
-      assert {:error, :role_above_yours} = team_invite(lead, backend, %{"role" => "manager"})
+      assert {:error, %Ecto.Changeset{}} = team_invite(admin, backend, %{"role" => "manager"})
     end
 
     test "a team the caller cannot see, or no team, is not found; a bad kind is missing", %{
@@ -160,7 +170,11 @@ defmodule Core.Organisation.InvitationsTest do
       frontend: frontend
     } do
       {:ok, a, _} =
-        Invitations.issue(admin, %{"kind" => "admin", "email" => unique_email()}, @now)
+        Invitations.issue(
+          Data.Scope.system(admin.organisation),
+          %{"kind" => "admin", "email" => unique_email()},
+          @now
+        )
 
       {:ok, b, _} = team_invite(admin, backend)
       {:ok, f, _} = team_invite(admin, frontend)
@@ -216,7 +230,11 @@ defmodule Core.Organisation.InvitationsTest do
       {:ok, theirs, _} = team_invite(admin, frontend)
 
       {:ok, top, _} =
-        Invitations.issue(admin, %{"kind" => "admin", "email" => unique_email()}, @now)
+        Invitations.issue(
+          Data.Scope.system(admin.organisation),
+          %{"kind" => "admin", "email" => unique_email()},
+          @now
+        )
 
       assert {:ok, _revoked} = Invitations.revoke(lead, mine.id, @now)
       assert Invitations.revoke(lead, theirs.id, @now) == {:error, :not_found}
@@ -289,13 +307,12 @@ defmodule Core.Organisation.InvitationsTest do
                Audit.list_for_subject(org.id, "users", user.id)
     end
 
-    test "an admin invitation makes an admin; the invited name stands in for a missing one", %{
-      org: org,
-      admin: admin
-    } do
+    test "the admin invitation makes the one system admin; the invited name stands in for a missing one" do
+      org = organisation_fixture()
+
       {:ok, inv, _} =
         Invitations.issue(
-          admin,
+          Data.Scope.system(org),
           %{"kind" => "admin", "email" => unique_email(), "invited_name" => "Dawud Kalim"},
           @now
         )

@@ -1,6 +1,6 @@
 defmodule ApiClient.ProfileController do
   @moduledoc """
-  The customer's own profiles (JH-01 §6.3): pitch and facts both allowed
+  The customer's own profiles (AQ-01 §6.3): pitch and facts both allowed
   (Q28), one at a time per `PATCH` like the console. Another customer's
   profile answers 404: the scope is pinned, and `Core.Access` decides.
   """

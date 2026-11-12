@@ -1,6 +1,6 @@
 defmodule Core.Customers do
   @moduledoc """
-  Customers (JH-01 P1.2, §6.2 and §6.3): the people the team hunts for,
+  Customers (AQ-01 P1.2, §6.2 and §6.3): the people the team hunts for,
   the teams that serve them, the portal invitation and the staff-only
   notes. Profiles are `Core.Customers.Profiles`, channels
   `Core.Customers.Channels`, documents `Core.Customers.Documents`, notes
@@ -30,7 +30,8 @@ defmodule Core.Customers do
 
   @doc """
   `GET /customers?team_id&status&q&mine`: every customer for an admin, the
-  caller's teams' otherwise (a manager also sees the unassigned, QP1-8).
+  caller's teams' otherwise; a customer in no team is the system admin's
+  alone (QP4a-23).
   `mine` keeps the customers with a profile the caller owns.
   """
   @spec list(Scope.t(), map()) :: {:ok, [Customer.t()]} | {:error, term()}
@@ -41,7 +42,6 @@ defmodule Core.Customers do
          {:ok, status} <- status(params["status"], required: false) do
       opts = [
         team_ids: visible_team_ids(scope, params["team_id"]),
-        unassigned: is_nil(params["team_id"]) and Scope.any_team?(scope, :manager),
         status: status,
         q: params["q"]
       ]
@@ -86,16 +86,18 @@ defmodule Core.Customers do
 
   @doc """
   `POST /customers {display_name, email, phone_e164?, timezone?, location_text?,
-  country_code?, started_on?, team_ids?}`. The timezone defaults to the
-  organisation's (QP1-2); every team named must be one the caller may
-  assign to.
+  country_code?, started_on?, team_ids}`. The timezone defaults to the
+  organisation's (QP1-2). `team_ids` is **required** (AQ-04A §8.5), each a
+  team the caller leads (the system admin: any): "Only a lead of that team
+  can add a customer to it."
   """
   @spec create(Scope.t(), map(), DateTime.t()) :: {:ok, Customer.t()} | {:error, term()}
   def create(%Scope{organisation: organisation} = scope, params, %DateTime{} = now) do
     params = stringify(params)
 
     with :ok <- Access.why_not(scope, :create, {:customer, %{}}),
-         {:ok, teams} <- assignable_teams(scope, List.wrap(params["team_ids"])) do
+         {:ok, team_ids} <- team_ids(params["team_ids"]),
+         {:ok, teams} <- assignable_teams(scope, team_ids) do
       attrs =
         params
         |> Map.take(Enum.map(Customer.staff_fields(), &to_string/1))
@@ -125,18 +127,38 @@ defmodule Core.Customers do
     end)
   end
 
-  # The teams a caller may put a customer in: any for an admin, their own as
-  # a manager or a lead. A team they cannot see is not found.
+  defp team_ids(ids) when is_list(ids) and ids != [], do: {:ok, ids}
+  defp team_ids(_none), do: {:error, {:invalid, %{"team_ids" => ["is required"]}}}
+
+  # The teams a caller may put a customer in: any for the system admin, the
+  # ones they lead otherwise (AQ-04A §8.5). A team they are not in is not
+  # found; one they are staff of is refused with words.
   defp assignable_teams(%Scope{organisation: organisation} = scope, team_ids) do
     Enum.reduce_while(team_ids, {:ok, []}, fn id, {:ok, acc} ->
       with %{archived_at: nil} = team <- Teams.get(organisation.id, id) || {:error, :not_found},
-           :ok <- Access.why_not(scope, :invite_member, {:team, team}) do
+           :ok <- leads_team(scope, team) do
         {:cont, {:ok, acc ++ [team]}}
       else
         %{} -> {:halt, {:error, :not_found}}
         error -> {:halt, error}
       end
     end)
+  end
+
+  defp leads_team(scope, team) do
+    cond do
+      Scope.admin?(scope) ->
+        :ok
+
+      Scope.team_role(scope, team.id) == :lead ->
+        :ok
+
+      Scope.team_role(scope, team.id) == :member ->
+        {:error, {:forbidden, Access.customer_team_words()}}
+
+      true ->
+        {:error, :not_found}
+    end
   end
 
   @doc "`PATCH /customers/:id` (staff: every field) and the portal's `PATCH /customer` (phone, timezone, location)."

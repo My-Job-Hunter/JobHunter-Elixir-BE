@@ -1,12 +1,12 @@
 defmodule Data.Customers.Customer do
   @moduledoc """
-  A person the team hunts for (JH-01 §4.3). A business row first, a login
+  A person the team hunts for (AQ-01 §4.3). A business row first, a login
   second: `user_id` is nil until the portal invitation is accepted. `status`
   changes are audited by `Core.Customers`.
 
   `team_ids` is virtual, filled by `Data.Customers` from `customer_teams` on
   every read, because `Core.Access` decides visibility from it (a customer
-  in no team is an admin's or a manager's, QP1-8) and a decision should not
+  in no team is the system admin's alone, QP1-8 as AQ-04A §8.5 settles it) and a decision should not
   depend on which association happens to be loaded.
   """
 

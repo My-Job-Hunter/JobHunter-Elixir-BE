@@ -2,7 +2,7 @@ defmodule Data.Schema do
   @moduledoc """
   The house schema defaults, in one place.
 
-  **One style for every table** (PLAN §2.2: AutoCare runs two side by side; we
+  **One style for every table** (PLAN §2.2: mCart runs two side by side; we
   keep one):
 
   - UUIDv7 primary keys, made by the application through `uniq`. They sort by

@@ -1,6 +1,6 @@
 defmodule Notifire.Workers.PasswordResetWorker do
   @moduledoc """
-  Sends one password reset link (AutoCare's `PA3`). **A reset is the one
+  Sends one password reset link (mCart's `PA3`). **A reset is the one
   message a row cannot reconstruct**: only the token's digest is stored, so
   the token travels in this job's args and is written nowhere else. What
   sits in a completed job is a dead string within the hour.

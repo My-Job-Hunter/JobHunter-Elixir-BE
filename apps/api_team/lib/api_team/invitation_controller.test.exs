@@ -23,7 +23,7 @@ defmodule ApiTeam.InvitationControllerTest do
       email: "hira@example.com",
       invited_name: "Hira Khan",
       team_id: backend.id,
-      role: "lead"
+      role: "member"
     }
 
     conn = call(lead, :post, "/v1/invitations", params)
@@ -45,15 +45,24 @@ defmodule ApiTeam.InvitationControllerTest do
 
     assert call(member, :post, "/v1/invitations", params).status == 403
 
-    assert code(call(lead, :post, "/v1/invitations", %{params | role: "manager"})) ==
-             "role_above_yours"
+    # §8.5: a team lead is the system admin's to invite; `kind: admin` is a field error.
+    refused =
+      call(lead, :post, "/v1/invitations", %{params | role: "lead", email: "x@example.com"})
 
-    assert call(lead, :post, "/v1/invitations", %{params | kind: "admin"}).status == 403
+    assert refused.status == 403
+    assert body(refused)["error"]["message"] == "Only the system admin can do that."
+
+    assert call(admin, :post, "/v1/invitations", %{params | role: "lead", email: "y@example.com"}).status ==
+             201
+
+    admin_kind = call(admin, :post, "/v1/invitations", %{params | kind: "admin"})
+    assert admin_kind.status == 422 and Map.has_key?(body(admin_kind)["error"]["details"], "kind")
+
     assert call(admin, :post, "/v1/invitations", %{params | email: "nope"}).status == 422
 
     conn = call(admin, :get, "/v1/invitations?state=open")
     assert conn.status == 200
-    assert [%{"id" => ^id}] = body(conn)
+    assert Enum.any?(body(conn), &(&1["id"] == id)) and length(body(conn)) == 2
     assert call(member, :get, "/v1/invitations").status == 403
 
     assert body(call(admin, :post, "/v1/invitations/#{id}/resend"))["state"] == "open"

@@ -1,6 +1,6 @@
 defmodule Data.Organisations do
   @moduledoc """
-  The organisation, its settings and its admins (JH-01 §4.2). Storage only;
+  The organisation, its settings and its admins (AQ-01 §4.2). Storage only;
   the guards (the last admin) are `Core.Organisation`'s.
   """
 
@@ -26,7 +26,7 @@ defmodule Data.Organisations do
 
   @doc """
   The one organisation (PLAN Q1): the oldest row. What a scope falls back to
-  for an account with no role yet, and what `mix jh.bootstrap` checks before
+  for an account with no role yet, and what `mix aq.bootstrap` checks before
   making one.
   """
   @spec the_one() :: Organisation.t() | nil
@@ -89,14 +89,20 @@ defmodule Data.Organisations do
     Repo.all(from(a in OrgAdmin, where: a.user_id == ^user_id, select: a.organisation_id))
   end
 
-  @spec count_admins(binary()) :: non_neg_integer()
-  def count_admins(organisation_id) do
-    Repo.aggregate(from(a in OrgAdmin, where: a.organisation_id == ^organisation_id), :count)
-  end
-
   @spec grant_admin(map()) :: {:ok, OrgAdmin.t()} | {:error, Ecto.Changeset.t()}
   def grant_admin(attrs), do: %OrgAdmin{} |> OrgAdmin.changeset(attrs) |> Repo.insert()
 
-  @spec revoke_admin(OrgAdmin.t()) :: {:ok, OrgAdmin.t()} | {:error, Ecto.Changeset.t()}
-  def revoke_admin(%OrgAdmin{} = admin), do: Repo.delete(admin)
+  @doc "The organisation's one system admin row, or `nil` before the bootstrap's invitation is accepted."
+  @spec the_admin(binary()) :: OrgAdmin.t() | nil
+  def the_admin(organisation_id),
+    do: OrgAdmin |> Repo.get_by(organisation_id: organisation_id) |> Repo.preload(user: :person)
+
+  @doc "Hands the one admin row to `user_id` (`mix aq.admin --to`): the row is kept, its holder changes."
+  @spec hand_admin(OrgAdmin.t(), binary(), DateTime.t()) ::
+          {:ok, OrgAdmin.t()} | {:error, Ecto.Changeset.t()}
+  def hand_admin(%OrgAdmin{} = admin, user_id, %DateTime{} = at) do
+    admin
+    |> Ecto.Changeset.change(user_id: user_id, granted_at: at, granted_by_user_id: nil)
+    |> Repo.update()
+  end
 end

@@ -1,11 +1,11 @@
 defmodule Data.Seeds.Skills do
   @moduledoc """
-  The skills vocabulary (JH-01 §8, QP1-4): about 120 skills in nine
+  The skills vocabulary (AQ-01 §8, QP1-4): about 120 skills in nine
   categories — languages, frameworks, data, cloud, mobile, design, product,
   QA, management — loaded into **every organisation**, idempotent by slug.
 
   Skills belong to an organisation (`skills.organisation_id`), and the
-  organisation comes from `mix jh.bootstrap`, not the seed. So the seed
+  organisation comes from `mix aq.bootstrap`, not the seed. So the seed
   loads into whatever organisations exist (none on a clean database: it
   reports 0 and does no harm), and the bootstrap loads it again for the
   organisation it makes. Either way the slugs are what keep "Node" and

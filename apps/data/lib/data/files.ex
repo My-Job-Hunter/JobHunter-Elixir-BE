@@ -1,6 +1,6 @@
 defmodule Data.Files do
   @moduledoc """
-  Stored files (`media`, JH-01 §4.1): a row reserved before the bytes arrive,
+  Stored files (`media`, AQ-01 §4.1): a row reserved before the bytes arrive,
   marked uploaded once they have. Storage only; the allowlist, the caps and
   the sniffing are `Core.Media`'s.
   """

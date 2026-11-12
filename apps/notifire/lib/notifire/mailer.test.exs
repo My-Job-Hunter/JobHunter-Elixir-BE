@@ -12,7 +12,7 @@ defmodule Notifire.MailerTest do
     email =
       Swoosh.Email.new(
         to: "tanweer@example.com",
-        from: {"Job Hunter", "hello@example.com"},
+        from: {"AutoQare", "hello@example.com"},
         subject: "Your interview is tomorrow",
         text_body: "Screening with the hiring manager, 10:00."
       )

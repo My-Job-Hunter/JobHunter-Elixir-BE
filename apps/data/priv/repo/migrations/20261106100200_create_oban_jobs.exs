@@ -4,7 +4,7 @@ defmodule Data.Repo.Migrations.CreateObanJobs do
   @moduledoc """
   Oban's own tables (`oban_jobs`, `oban_peers`), from its migration module.
 
-  Versioned rather than copied, as AutoCare does: `Oban.Migration` knows how
+  Versioned rather than copied, as mCart does: `Oban.Migration` knows how
   to move between its own schema versions, which a hand-written copy would
   not. Oban 2.24's current version is 14.
   """

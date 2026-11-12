@@ -2,9 +2,9 @@ defmodule Data.Repo.Migrations.CreateDocumentMedia do
   use Ecto.Migration
 
   @moduledoc """
-  A document's file (JH-01 §4.3): the link between `documents` and `media`,
+  A document's file (AQ-01 §4.3): the link between `documents` and `media`,
   one per document (unique `document_id`). One link table per owner
-  (AutoCare's pattern), so `media` knows nothing about what it illustrates.
+  (mCart's pattern), so `media` knows nothing about what it illustrates.
   The file cannot be deleted while a document points at it (restrict).
   """
 

@@ -1,5 +1,5 @@
 defmodule ApiTeam.ChannelController do
-  @moduledoc "A customer's channels (JH-01 §6.2)."
+  @moduledoc "A customer's channels (AQ-01 §6.2)."
 
   use Phoenix.Controller, formats: [:json]
 

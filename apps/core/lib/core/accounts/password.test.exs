@@ -23,6 +23,14 @@ defmodule Core.Accounts.PasswordTest do
     assert Password.check(String.duplicate("a", 72)) == :ok
   end
 
+  test "a dev server skips only the worst-list; test and production keep it" do
+    refute Application.get_env(:core, :dev_worst_passwords, false)
+    assert Password.check("password123") == {:error, :password_too_weak}
+    assert Password.check("password123", allow_worst: true) == :ok
+    assert Password.check("password12", []) == {:error, :password_too_weak}
+    assert Password.check("short", allow_worst: true) == {:error, :password_too_weak}
+  end
+
   test "not a string is too weak" do
     assert Password.check(nil) == {:error, :password_too_weak}
     assert Password.check(12_345_678_901) == {:error, :password_too_weak}

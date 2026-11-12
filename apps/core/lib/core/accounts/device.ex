@@ -1,6 +1,6 @@
 defmodule Core.Accounts.Device do
   @moduledoc """
-  The device line on the account page (JH-01 §7.1: "Chrome on macOS ·
+  The device line on the account page (AQ-01 §7.1: "Chrome on macOS ·
   signed in 2 h ago"), from the user agent a sign-in stored in the token's
   claims (`dev.agent`). Pure, and deliberately coarse: a browser family and
   an OS family are what a person recognises; a version number is noise.

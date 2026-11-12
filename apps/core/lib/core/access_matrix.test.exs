@@ -1,7 +1,8 @@
 defmodule Core.AccessMatrixTest do
   @moduledoc """
-  JH-01 §5.3, cell by cell, over **one fixture organisation**: two teams
-  (Backend, Frontend); Dawud admin + manager of both; Hira lead of both;
+  AQ-01 §5.3 as AQ-04A §4.0 and §8.5 settle it (no manager chair; one system
+  admin), cell by cell, over **one fixture organisation**: two teams
+  (Backend, Frontend); Dawud the system admin, in no team; Hira lead of both;
   Bilal lead of Backend; Fiza member of both; Qasim and Muaz members of
   Backend; customers Tanweer and Naveed (Backend), Imran (Frontend), Sara
   (invited, no login), and Lone — a customer in no team (QP1-8).
@@ -24,14 +25,7 @@ defmodule Core.AccessMatrixTest do
   alias Data.Scope
 
   @actions %{
-    organisation: [
-      :read_settings,
-      :update_settings,
-      :list_admins,
-      :grant_admin,
-      :revoke_admin,
-      :read_audit
-    ],
+    organisation: [:read_settings, :update_settings, :read_audit],
     team: [
       :read,
       :create,
@@ -59,6 +53,7 @@ defmodule Core.AccessMatrixTest do
     profile: [:read, :create, :update_facts, :update_pitch, :archive, :set_owners],
     channel: [:read, :create, :update, :archive],
     document: [:read, :create, :update, :archive, :download],
+    pipeline: [:read, :edit],
     people: [:read_people],
     self: [:read_self, :update_self]
   }
@@ -73,8 +68,6 @@ defmodule Core.AccessMatrixTest do
     frontend = team_fixture(org, name: "Frontend squad")
 
     dawud = admin_fixture(org, display_name: "Dawud Kalim")
-    member_fixture(backend, :manager, dawud)
-    member_fixture(frontend, :manager, dawud)
     hira = member_fixture(backend, :lead, user_fixture(display_name: "Hira Khan"))
     member_fixture(frontend, :lead, hira)
     bilal = member_fixture(backend, :lead, user_fixture(display_name: "Bilal"))
@@ -105,6 +98,7 @@ defmodule Core.AccessMatrixTest do
       lone_profile: {:profile, profile_fixture(lone)},
       tanweer_channel: {:channel, channel_fixture(tanweer)},
       imran_channel: {:channel, channel_fixture(imran)},
+      pipeline: {:pipeline, :employment},
       people: :people,
       self: :self
     }
@@ -143,12 +137,12 @@ defmodule Core.AccessMatrixTest do
     :read_settings,
     :update_settings,
     :invite_member,
-    :change_role,
     :remove_member
   ]
+  @admin_team_actions [:create, :update, :archive, :change_role]
 
   @rows [
-    # Dawud: admin (and manager of both). Everything.
+    # Dawud: the system admin. Everything, in every team.
     {:dawud, :org, :ok},
     {:dawud, :backend, :ok},
     {:dawud, :frontend, :ok},
@@ -160,33 +154,31 @@ defmodule Core.AccessMatrixTest do
     {:dawud, :lone_profile, :ok},
     {:dawud, :tanweer_channel, :ok},
     {:dawud, :tanweer_document, :ok},
+    {:dawud, :pipeline, :ok},
     {:dawud, :people, :ok},
     {:dawud, :self, :ok},
 
     # Hira: lead of both teams.
-    {:hira, :org,
-     %{
-       ok: [:read_settings],
-       forbidden: [:update_settings, :list_admins, :grant_admin, :revoke_admin, :read_audit]
-     }},
-    {:hira, :backend, %{ok: @lead_team_actions, forbidden: [:create, :update, :archive]}},
-    {:hira, :frontend, %{ok: @lead_team_actions, forbidden: [:create, :update, :archive]}},
+    {:hira, :org, %{forbidden: @actions.organisation}},
+    {:hira, :backend, %{ok: @lead_team_actions, forbidden: @admin_team_actions}},
+    {:hira, :frontend, %{ok: @lead_team_actions, forbidden: @admin_team_actions}},
     {:hira, :backend_invitation, :ok},
     {:hira, :tanweer, :ok},
     {:hira, :imran, :ok},
     {:hira, :sara, :ok},
-    # A customer in no team is an admin's or a manager's (QP1-8): a lead does not see them.
+    # A customer in no team is the system admin's alone (QP4a-23): a lead does not see them.
     {:hira, :lone, %{ok: [:list, :create], not_found: @actions.customer -- [:list, :create]}},
     {:hira, :lone_profile, %{not_found: @actions.profile}},
     {:hira, :tanweer_profile, :ok},
     {:hira, :imran_profile, :ok},
     {:hira, :tanweer_channel, :ok},
     {:hira, :imran_document, :ok},
+    {:hira, :pipeline, :ok},
     {:hira, :people, :ok},
     {:hira, :self, :ok},
 
     # Bilal: lead of Backend only. Frontend and its customers do not exist for him.
-    {:bilal, :backend, %{ok: @lead_team_actions, forbidden: [:create, :update, :archive]}},
+    {:bilal, :backend, %{ok: @lead_team_actions, forbidden: @admin_team_actions}},
     {:bilal, :frontend, %{not_found: @actions.team -- [:create], forbidden: [:create]}},
     {:bilal, :tanweer, :ok},
     {:bilal, :imran, %{ok: [:list, :create], not_found: @actions.customer -- [:list, :create]}},
@@ -220,6 +212,7 @@ defmodule Core.AccessMatrixTest do
     {:fiza, :tanweer_channel, :ok},
     {:fiza, :imran_channel, :ok},
     {:fiza, :tanweer_document, :ok},
+    {:fiza, :pipeline, %{ok: [:read], forbidden: [:edit]}},
     {:fiza, :people, :ok},
     {:fiza, :self, :ok},
 
@@ -238,6 +231,8 @@ defmodule Core.AccessMatrixTest do
     {:muaz, :imran_document, %{not_found: @actions.document}},
     {:muaz, :frontend, %{not_found: @actions.team -- [:create], forbidden: [:create]}},
     {:muaz, :tanweer_channel, :ok},
+    {:muaz, :pipeline, %{ok: [:read], forbidden: [:edit]}},
+    {:bilal, :pipeline, :ok},
 
     # Tanweer: a customer, from the portal. Their own, and nothing else.
     {:tanweer, :org, %{forbidden: @actions.organisation}},
@@ -257,6 +252,7 @@ defmodule Core.AccessMatrixTest do
     {:tanweer, :imran_channel, %{not_found: @actions.channel}},
     {:tanweer, :tanweer_document, :ok},
     {:tanweer, :imran_document, %{not_found: @actions.document}},
+    {:tanweer, :pipeline, %{not_found: [:read, :edit]}},
     {:tanweer, :people, %{not_found: [:read_people]}},
     {:tanweer, :self, :ok}
   ]
@@ -335,43 +331,45 @@ defmodule Core.AccessMatrixTest do
              Profiles.update_pitch(scopes.qasim, profile.id, %{"headline" => "x"})
   end
 
-  test "a manager of several teams reaches every customer of every one of them", %{
+  test "a lead of several teams reaches every customer of each, but not a customer in no team", %{
     subjects: subjects
   } do
     {:customer, tanweer} = subjects.tanweer
     {:customer, imran} = subjects.imran
     {:customer, lone} = subjects.lone
-    org = Data.Organisations.get(tanweer.organisation_id)
-    manager = user_fixture(display_name: "Manager of both")
+    lead = user_fixture(display_name: "Lead of both")
 
     for team_id <- tanweer.team_ids ++ imran.team_ids,
-        do: member_fixture(%{id: team_id}, :manager, manager)
+        do: member_fixture(%{id: team_id}, :lead, lead)
 
-    scope = scope_for(manager)
+    scope = scope_for(lead)
 
-    for customer <- [tanweer, imran, lone], action <- @actions.customer do
+    for customer <- [tanweer, imran], action <- @actions.customer do
       assert Access.can?(scope, action, {:customer, customer}),
-             "manager #{action} #{customer.display_name}"
+             "lead #{action} #{customer.display_name}"
     end
 
+    assert Access.why_not(scope, :read, {:customer, lone}) == {:error, :not_found}
     assert {:ok, listed} = Customers.list(scope)
 
     assert Enum.sort(Enum.map(listed, & &1.display_name)) == [
              "Imran",
-             "Lone",
              "Naveed",
              "Sara",
              "Tanweer"
            ]
-
-    # A single-team manager does not reach the other team's customer, but does reach the unassigned one.
-    one_team = member_fixture(%{id: hd(tanweer.team_ids)}, :manager, user_fixture())
-    assert Access.why_not(scope_for(one_team), :read, {:customer, imran}) == {:error, :not_found}
-    assert Access.can?(scope_for(one_team), :update, {:customer, lone})
-    assert org.id == tanweer.organisation_id
   end
 
-  test "a customer in no team (QP1-8) is visible to admins and managers only", %{
+  test "nobody grants the system admin: there is no admin action left on the organisation", %{
+    scopes: scopes,
+    subjects: subjects
+  } do
+    for action <- [:list_admins, :grant_admin, :revoke_admin] do
+      assert Access.why_not(scopes.dawud, action, subjects.org) == {:error, :not_found}
+    end
+  end
+
+  test "a customer in no team (QP4a-23) is visible to the system admin only", %{
     scopes: scopes,
     subjects: subjects
   } do

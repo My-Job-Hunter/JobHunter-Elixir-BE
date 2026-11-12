@@ -150,13 +150,13 @@ defmodule Core.AccountsTest do
       admin: admin
     } do
       team = team_fixture(org, name: "Backend squad")
-      member_fixture(team, :manager, admin)
+      member_fixture(team, :lead, admin)
       me = Accounts.me(scope_for(admin))
 
       assert me.user.id == admin.id
       assert me.user.person.display_name == "Test Person"
       assert me.roles.admin == true
-      assert me.roles.teams == [%{team_id: team.id, name: "Backend squad", role: :manager}]
+      assert me.roles.teams == [%{team_id: team.id, name: "Backend squad", role: :lead}]
       assert me.roles.customer_id == nil
       assert me.settings.theme == :system
       assert me.organisation.id == org.id
@@ -293,18 +293,18 @@ defmodule Core.AccountsTest do
       assert lifted.suspended_at == nil
     end
 
-    test "not by a manager, not yourself, not somebody outside the organisation", %{
+    test "not by a team lead, not yourself, not somebody outside the organisation", %{
       org: org,
       admin: admin,
       scope: scope
     } do
       team = team_fixture(org)
-      manager = member_fixture(team, :manager)
+      lead = member_fixture(team, :lead)
       member = member_fixture(team, :member)
       outsider = user_fixture()
 
       assert {:error, {:forbidden, _words}} =
-               Accounts.suspend(scope_for(manager), member.id, @now)
+               Accounts.suspend(scope_for(lead), member.id, @now)
 
       assert {:error, {:forbidden, _words}} = Accounts.suspend(scope, admin.id, @now)
       assert Accounts.suspend(scope, outsider.id, @now) == {:error, :not_found}

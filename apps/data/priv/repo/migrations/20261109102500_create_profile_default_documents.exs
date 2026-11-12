@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateProfileDefaultDocuments do
   use Ecto.Migration
 
   @moduledoc """
-  A profile's default CV (JH-01 §4.3 `default_document_id`), as a link
+  A profile's default CV (AQ-01 §4.3 `default_document_id`), as a link
   table: `documents` points at `profiles`, so the column could not carry
   its foreign key inside `create_profiles`. One row per profile; the API
   still speaks `default_document_id`.

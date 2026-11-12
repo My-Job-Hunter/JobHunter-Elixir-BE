@@ -1,8 +1,8 @@
-# Job Hunter Backend — Conventions
+# AutoQare Backend — Conventions
 
-The enforced rules for this codebase, adapted from AutoCare's. `CLAUDE.md` is
+The enforced rules for this codebase, adapted from mCart's. `CLAUDE.md` is
 the index; `AGENTS.md` covers Phoenix mechanics; `../PLAN.md` is the product.
-This covers Job Hunter's own decisions.
+This covers AutoQare's own decisions.
 
 ---
 
@@ -67,6 +67,17 @@ Rules:
 - **The scope lives in `data`**, because every data function takes one and
   `data` cannot depend on `core`. Only the decisions made with it are business
   logic.
+- **The extension acts as its person** (AQ-05 QP5-6): the same scope with
+  `via: :extension`, the same `Core.Access`, guard and verbs — no second
+  rulebook. Its ledger rows are `actor_kind: extension` with the person, and
+  count as activity.
+- **A token stays in its app** (AQ-05 QP5-5): a device's (`dev.app` `ext`,
+  `sid` the device) works only on `/ext/v1`, and no other token works there
+  (`ApiShared.Plugs.TokenApp`, `Guardian.exchange_refresh_token/2`).
+- **What only the server sets is an option, never a param**: the
+  extension's `request_id`, `applied_confirmation` and capture reach
+  `Core.Leads.create/4` and `Core.Leads.Act.run/6` as `opts`, so no console
+  body can claim them.
 
 ---
 
@@ -74,7 +85,7 @@ Rules:
 
 | Quantity | Column | Notes |
 |---|---|---|
-| Money | `:integer` minor units + `currency` string | **Never** `:float` or `:decimal` for money in transit; `_minor` suffix |
+| Money | `:integer` minor units + `currency` string | **Never** `:float` or `:decimal` for money in transit; `_minor` suffix. A minor unit is **ISO 4217's exponent** (2 for PKR and USD, 0 for JPY, 3 for KWD), never a browser's display rule: the frontend's `minorDigits` holds the same table |
 | Timestamps | `:utc_datetime_usec` (`timestamptz`) | Plus the IANA zone it was set in, where a schedule is involved |
 | Calendar days | `:date` | A day, not an instant |
 | Duration | `:integer` seconds, or the unit in the name (`lead_days`) | |
@@ -123,7 +134,7 @@ carries `{field => [message]}`.
 | 429 | `rate_limited` | `details.retry_after_seconds` when the throttle knows; the header `retry-after` too |
 | 500 | `internal_error` | Says nothing about internals |
 
-### Codes in P1 (JH-01 §6.5)
+### Codes in P1 (AQ-01 §6.5)
 
 | Status | `code` | When |
 |---|---|---|
@@ -134,11 +145,11 @@ carries `{field => [message]}`.
 | 404 | `invitation_invalid` | A code nobody issued, of the wrong shape, or revoked |
 | 410 | `invitation_expired` | A code past its seven days (QP1-1) |
 | 410 | `invitation_used` | A code already accepted |
-| 422 | `password_too_weak` | Under ten characters, over bcrypt's 72 bytes, or on the worst-list (QP1-6); `details.password` |
+| 422 | `password_too_weak` | Under ten characters, over bcrypt's 72 bytes, or on the worst-list (QP1-6); `details.password`. A dev server skips the worst-list (`config :core, dev_worst_passwords: true`, dev.exs only), so the cast's shared test password works there |
 | 410 | `token_invalid` | A reset or confirmation link that is dead: used, expired or never issued — one answer for all three |
 | 409 | `email_taken` | An address another account already has: accepting an invitation without signing in, or an email change |
-| 409 | `last_admin` | Revoking the organisation's only admin: "The organisation needs one admin. Grant another first." |
-| 403 | `role_above_yours` | A lead making or touching a manager: "Only a manager can make a manager." |
+| ~~409~~ | ~~`last_admin`~~ | **Retired in P4a.0** (AQ-04A QP4a-21): there is one system admin and no route revokes it, so nothing raises it; the fallback clause is gone |
+| ~~403~~ | ~~`role_above_yours`~~ | **Retired in P4a.0** (AQ-04A §4.0): there is no manager; a team lead touching a role or another lead is `forbidden` with "Only the system admin can do that."; the fallback clause is gone |
 | 413 | `file_too_large` | Over the cap for the kind (QP1-3: 5 MB a photo, 10 MB a document); `details.max_bytes` |
 | 415 | `file_type_not_allowed` | A content type off the allowlist, or wrong for the kind |
 | 422 | `file_mismatch` | The bytes are not the declared type (sniffed, never trusted from the header) |
@@ -150,18 +161,143 @@ profile `PATCH` mixing pitch and facts, a document with both `media_id` and
 `url`), and `{:error, {:invitation_expired, expires_at}}` is the `410` with
 `details.expires_at`, so the screen can say when.
 
+### Codes in P2 (AQ-02 §7.5)
+
+| Status | `code` | When |
+|---|---|---|
+| 409 | `task_moved` | A task verb whose `from` is not the task's state now (`{:error, {:task_moved, task}}`): "This task moved while you were looking. It's now In progress."; `details: {state, stage}` as it is now, `stage` `{id, name}` or `null` |
+
+Everything else the board refuses is a field error (422) or `not_found` /
+`forbidden` with AQ-02 §6.2's words ("Only the people on this task, or a
+lead, can change it.", "This task isn't about a customer."). AQ-03B removed
+`is_private` (and its words): sending it is a 422 on the field.
+
+### Codes in P3 (AQ-03 §7)
+
+| Status | `code` | When |
+|---|---|---|
+| 409 | `job_exists` | `POST /jobs` with a link whose canonical key is a job's already, or was merged into one — including a job added between the check and the insert (`{:error, {:job_exists, job}}`): "That link is already in the pool: Backend Developer."; `details: {job_id, title}` of the job it is (the survivor, for a merged link). Per team since AQ-03B: the key is the team's pool's; a job the caller may not see (a teammate's at `peer_jobs: hidden`) is `{:error, {:job_exists, :hidden}}` — the same code, "That link is already in this team's pool, added by another member.", `details: {job_id: null, title: null}` |
+| 409 | `job_moved` | A close or reopen whose `from` is not the job's status now (`{:error, {:job_moved, job}}`): "This job changed while you were looking. It's now closed."; `details: {status}` as it is now |
+
+Everything else the pool refuses is a field error (422) or `not_found` /
+`forbidden` with AQ-03 §4.2's words ("Only a lead can merge or archive a
+job."). The customer reaches no job or company: `not_found`.
+
+### P3b (AQ-03B §5): no new code
+
+A teammate's task or job hidden by the team's level, a team the caller is
+not in, and a share link that is unknown, expired, revoked or opened by a
+customer or another organisation are all `not_found`. A member at `view`
+is refused a change with `forbidden` and "You can see this, but only its
+people or a team lead can change it."; a share link's revoke by anyone but
+its maker, a team lead or an admin with "Only whoever made this link, or a
+team lead, can turn it off." A list, a check or a create without `team_id`,
+a `view` on `GET /board`, `is_private` on a task, a merge into another
+team's job (`into_job_id` "is in another team") and a task moved to another
+team (QT-12) are field errors (422).
+
+### P4a (AQ-04A §4.0, §6, §7, §8.4, §8.5)
+
+| Status | `code` | When |
+|---|---|---|
+| 409 | `duplicate_application` | `POST /leads` (or an apply) for a profile that already has a lead on the posting, in any team (`{:error, {:duplicate_application, %{existing, message}}}`): "“Golang” already has a lead on this job: applied by Fiza, 12 Oct." — in another team "…in another team, applied 12 Oct.", for a lead the caller may not see "…by another member, 12 Oct."; `details: {existing: {lead_id?, state?, applied_at, by?, team: "this" \| "another"}}`, the keys the caller may not know left out. The unique `(job_id, profile_id)` maps to the same 409 |
+| 422 | `override_reason_required` | *Apply again* without a `reason`: "Say why you're applying again."; `details: {reason: ["is required"]}` |
+| 409 | `lead_moved` | A lead verb whose `from: {state, stage}` is not where the lead is now (`{:error, {:lead_moved, lead}}`): "This lead moved while you were looking. It's now In progress · Technical interview 1."; `details: {state, stage: {key, name}?}` |
+| 422 | `outcome_required` | *Finish* (or a drop on Done) without an `outcome`: "Say how it ended."; `details: {outcome: ["is required"]}` |
+
+Everything else a lead refuses is a field error (422) — a paused customer or profile on `profile_id` ("Naveed is paused. Resume them before saving or applying for them."), a pipeline save off §9.2's rules on `stages`, a merge with a profile on both jobs on `into_job_id` — or `not_found` / `forbidden` with AQ-04A §4.2's words ("Backend squad doesn't serve Imran.", "You can see this, but only its owner or a team lead can change it.", "Only the owner or a team lead can hand this lead on.", "Only the lead's owner, or a team lead, can archive or pin it.", "Only a team lead can change a pipeline.", "You can say you applied while it is still To do.").
+
+**The roles (P4a.0, AQ-04A §8.5)** raise no code of their own: what is the system admin's alone — teams, roles, Settings › System, the audit log, inviting a team lead — is `forbidden` with "Only the system admin can do that."; a customer put in a team the caller only works in is `forbidden` with "Only a lead of that team can add a customer to it."; `kind: admin` on `POST /invitations` and a missing `team_ids` on `POST /customers` are field errors (422).
+
+### P4b (AQ-04B §4, §8.4): no new code
+
+Every refusal is a field error (422), `not_found`, a `forbidden` with
+AQ-04B §4's words ("Only the people working this lead can add a note.",
+"Only its author or a team lead can change a note.", "Only a team lead can
+change the team's labels.", AQ-04A §4.2's for following up, labelling and a
+task on a lead), or P4a's `lead_moved`. A purged pair answers P4a's 409
+`duplicate_application` with `details.existing.purged: true` and "Already
+applied as “Golang” on 16 Oct; that lead was cleared after 180 quiet
+days."; *Apply again…* there (`again_reason` on `POST /leads`) without a
+reason is P4a's 422 `override_reason_required`. A note, the retention
+preview, Customer › Activity for staff and another person's saved view are
+`not_found`. `POST /leads/bulk` answers 200 with each lead's refusal as
+`{id, code, message}` — the same codes and words, from
+`ApiShared.FallbackController.describe/1`, never a status of their own.
+
+### P5 (AQ-05 §8, §11.3, §11.4)
+
+| Status | `code` | When |
+|---|---|---|
+| 409 | `identity_mismatch` | *I applied* (`POST /ext/v1/leads/applied`) with an `identity` that is a live channel of another customer than the acting profile's (`{:error, {:identity_mismatch, %{channel, kind, acting}}}`): "You're signed in as Naveed's LinkedIn, not Tanweer's. Switch the acting profile, then press again."; `details: {channel: {id, customer: {id, display_name}}}` — `channel: null` (and "…signed in to another customer's LinkedIn…") for a channel of a customer the caller doesn't serve. *Save* is never refused for it (QP5-9) |
+
+Everything else the extension meets is P1's, P3's or P4a's: a dead, used or
+unknown connect code is P1's 410 `token_invalid` (one answer for all
+three); a token of the wrong app — a device's on `/team` or `/client`, a
+console's or portal's on `/ext`, or a disconnected device's — is the
+pipeline's `401 unauthenticated`, and its refresh `401
+invalid_refresh_token`; `job_exists`, `duplicate_application`,
+`override_reason_required`, `lead_moved` and field errors as the console
+gets them. A device, the health page and the configs list of someone the
+caller may not see are `not_found`. `GET /ext/v1/config` answers `304` with
+no body when `If-None-Match` names its `ETag` (the document's SHA-256,
+quoted) — a cache answer, not an error. **Idempotency:** a save, applied
+or apply-again whose `request_id` already made an event answers `200`
+`answer: "replayed"` with that lead (`lead_events.request_id`, unique),
+never the guard's 409.
+
+### P6 (AQ-06 §6, §11.6)
+
+| Status | `code` | When |
+|---|---|---|
+| 409 | `contact_exists` | `POST /contacts` (the match re-run in its transaction) or `POST /contacts/:id/handles` with a handle — an email, a LinkedIn or Upwork link by `Utils.ChannelKey`, a phone's digits, normalised — that another contact holds (`{:error, {:contact_exists, %{contact_id, name, kind}}}`): "That LinkedIn is Mei Chen's already."; `details: {contact_id, name}` of the contact holding it (the survivor, for a merged one) |
+
+Everything else P6 refuses is a field error (422) — a verb on a meeting not
+scheduled on `status` ("This meeting is already cancelled."), *Create job
+and lead* without a link on `job.url` ("Add the job's link."), a class
+needing a lead on a triage item, a conversation linked across teams or
+customers — `not_found` (an unseen conversation, message or meeting; a
+customer on a contact, triage or a staff note), or `forbidden` with AQ-06
+§4's words ("Only a team lead can merge contacts.", "Only its author or a
+team lead can change this message.", "Captured messages can't be
+edited.") and P4a's for whoever may not change the lead.
+
+### P7 (AQ-07 §4, §11.4)
+
+| Status | `code` | When |
+|---|---|---|
+| 409 | `approval_not_pending` | `POST /approvals/:id/decide` on a `version` that isn't the current one, an approval no longer pending, or a slot that has decided this version already — re-checked under a row lock in the decision's transaction (`{:error, {:approval_not_pending, %{state, version}}}`): "This approval changed while you were looking. It's now Changes requested."; `details: {state, version}` as it is now |
+| 403 | `not_reviewer` | Deciding an approval the caller sees but holds no slot of — staff on a customer's slot, a member on a team-lead slot, and the requester on their own (`{:error, :not_reviewer}`): "This isn't yours to decide." |
+
+Everything else P7 refuses is a field error (422) — an ad hoc kind without
+`slots`, a `proposed.<member>` that doesn't fit the kind, a note missing on
+`changes_requested` or `rejected`, a verb in the wrong state on `state`
+("Only a draft can be edited; revise it instead."), `sent` twice on
+`effect` — `not_found` (an unseen approval or draft; a customer on a
+staff-only one; a profile change asked by staff not serving the customer),
+or `forbidden` with AQ-07 §4's words ("Only whoever asked, or a team lead,
+can change this.", "Only a team lead can change approval rules.", "Only its
+author or a team lead can delete this comment.", "Only a team lead can see
+all of the team's approvals.") and P4a's for whoever may not change the lead.
+
+### P8 (AQ-08 §4, §11.4): no new code
+
+Every refusal is a field error (422) or P1's codes: `PUT
+/notifications/settings/groups/:key` on Account (`group`: "These can't be
+turned off."), on a channel the group doesn't use ("This group doesn't use
+it."), on `extension` for a customer ("The extension is for the team."), on
+a switch that isn't a boolean; `POST /me/push` with a missing key or an
+endpoint not `https://` (`endpoint`: "This browser's subscription didn't
+come through."); an unknown group is `not_found`; delivery health for
+anyone but the system admin is `forbidden` with "Only the system admin can
+see delivery health."; a console or portal token on
+`/ext/v1/notifications/pop-ups` is P5's `401 unauthenticated`.
+
 ### Reserved (PLAN §15.5), arriving with the phases that raise them
 
 | Status | `code` | When |
 |---|---|---|
-| 409 | `duplicate_application` | A second application to the same job; `details.existing` names the lead |
-| 422 | `override_reason_required` | Overriding the duplicate guard without saying why |
-| 409 | `lead_moved` | The lead changed under you; reload |
-| 422 | `outcome_required` | Finishing a lead without an outcome |
-| 409 | `approval_not_pending` | Deciding an approval that is not pending |
-| 403 | `not_reviewer` | Deciding an approval that is not yours to decide |
-| 422 | `channel_unknown` | A capture from a channel nobody registered |
-| 409 | `identity_mismatch` | The extension's identity is not the acting profile's |
+| 422 | `channel_unknown` | A capture from a channel nobody registered (P6's conversations) |
 
 **We do not use `{"success": false, ...}`.** An envelope restating the HTTP
 status gives every client two places to check that can disagree, and it
@@ -200,7 +336,7 @@ Phoenix.PubSub.broadcast(Core.PubSub, topic, %Phoenix.Socket.Broadcast{...})
 broadcasts nothing. `Endpoint.broadcast/3` attaches the **fastlane**; a raw
 publish lands in every channel process's mailbox and routes through a
 `handle_out/3` the channels do not define — which crashed every broadcast to a
-joined client in AutoCare, silently, because the client reconnects and
+joined client in mCart, silently, because the client reconnects and
 refetches. The endpoint is injected as `config :core, :endpoint` because `api`
 depends on `core` and never the reverse.
 
@@ -219,9 +355,13 @@ A channel test that subscribes to PubSub proves nothing about channels: use
 ## 7. Notifications are rows
 
 `core` decides what to say and **writes a notification row in the same
-transaction** as the change. `notifire` picks up unsent rows and delivers them
-(P7). The table is the seam: a mailer being down leaves rows unsent rather
-than failing the write that produced them.
+transaction** as the change, through `Core.Notifications.ensure/2`, which
+plans the new row's deliveries in that transaction too: one
+`notification_deliveries` row per channel beyond the bell (AQ-08 §7.1).
+`notifire` sends the due ones (`Notifire.Delivery.run/2`, on write and every
+five minutes). The ledger is the seam: a mailer being down leaves rows
+pending rather than failing the write that produced them, and the unique
+`(notification_id, channel)` is "never twice".
 
 - `core` and `notifire` **never call each other**. A worker `notifire` owns is
   named to `core` in config (the crontab, a job's `worker:`), never in code.
@@ -229,7 +369,12 @@ than failing the write that produced them.
 - Build such a job with `Oban.Job.new/2`, never `Worker.new/1`: the generated
   `new/1` needs the module loaded, and `apps/core`'s own suite is exactly
   where it is not.
-- Notifications are `ensure`d against a `dedupe_key`, never blindly created.
+- Notifications are `ensure`d against a `dedupe_key`, never blindly created,
+  and only through `Core.Notifications.ensure/2` (P8): a notice module that
+  called `Data.Notifications.ensure/2` would skip its deliveries.
+- What `notifire` needs from `core` it gets as data on the row: a meeting's
+  `.ics` is rendered by `core` and kept on the email row (`ics`), never
+  read back through a `core` call.
 
 ---
 
@@ -244,6 +389,20 @@ deploy, and after any backfill, so each has a test that runs it twice. Workers
 hold **no rules**: they call a context function a test can call directly.
 `testing: :manual` in test — a job racing the SQL sandbox produces failures
 that have nothing to do with the code under test.
+
+**The sweeps are hourly, never "once a night"** (AQ-04B QP4b-2; P5's
+`Core.Extension.MissSweep` too, which forgets misses after 30 days): a rule
+that compares dates does the night's work once in whichever hour comes
+first, and catches up after downtime with no time-zone cron to keep right.
+
+**The dev clock** (AQ-04B §7.6): `Core.Clock.now/0` (a delegate to
+`Utils.Clock` since AQ-08 QP8-22, so `notifire` reads the same *now*) adds
+an offset in days kept in `:persistent_term`, set only by `POST /team/v1/dev/clock {days}` (and
+`/dev/clock` at the root) on a server built with `config :api, dev_routes:
+true` — and refused unless `config :core, dev_clock: true`, both dev.exs's
+alone — so a release has no route and an offset of 0. `freeze/1` still wins
+in a test; a test that moves the offset is `async: false` and resets it on
+exit.
 
 ---
 
@@ -276,7 +435,7 @@ wearing a database's clothes: the constraint is what stops a mix task or a
 psql session writing something the code cannot read.
 
 The values themselves are `Data.Vocabulary`'s, shared with the frontend word
-for word and in order; `mix jh.vocabulary` exports them.
+for word and in order; `mix aq.vocabulary` exports them.
 
 ---
 

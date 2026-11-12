@@ -1,6 +1,6 @@
 defmodule Data.Customers.CustomerNote do
   @moduledoc """
-  A staff-only note about a customer (JH-01 §4.3): never in the portal, and
+  A staff-only note about a customer (AQ-01 §4.3): never in the portal, and
   the portal has no route that could reach one. Deleted notes keep their
   row (`deleted_at`) so the audit log's subject still resolves.
   """

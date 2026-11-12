@@ -61,4 +61,31 @@ defmodule Notifire.EmailTest do
     assert mail.to == [{"Test Person", "new@example.com"}]
     assert mail.text_body =~ "confirm-email?token="
   end
+
+  # AQ-08 §7.7, §11.4: the delivery tests read the whole form from the
+  # mailbox; here, what only the builder shows.
+  test "a notification: the subject on one line; a cancelled meeting's invite is a CANCEL" do
+    user = user_fixture(display_name: "Hira Khan")
+    recipient = Data.Notifications.recipient(user.id)
+
+    notification = %{
+      notification_kind_key: "meetings.changed",
+      title: "Technical interview with Corvid Security\nwas cancelled",
+      body: nil,
+      link_path: "/leads/1"
+    }
+
+    mail =
+      Email.for_notification(notification, recipient, "METHOD:CANCEL\r\nSTATUS:CANCELLED\r\n")
+
+    assert mail.subject == "Technical interview with Corvid Security was cancelled"
+    assert mail.to == [{"Hira Khan", user.email}]
+
+    assert [%{content_type: "text/calendar; method=CANCEL", filename: "invite.ics"}] =
+             mail.attachments
+
+    assert mail.text_body =~ "http://localhost:5800/leads/1\n"
+
+    assert Email.for_notification(notification, recipient).attachments == []
+  end
 end

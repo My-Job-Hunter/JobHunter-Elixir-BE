@@ -1,6 +1,6 @@
 defmodule ApiClient.Plugs.CustomerScope do
   @moduledoc """
-  Pins the portal's scope to the customer (JH-01 §5.1). Runs after
+  Pins the portal's scope to the customer (AQ-01 §5.1). Runs after
   `ApiShared.Plugs.Scope`: when `roles.customer_id` is nil — a staff account
   on the portal — the request is refused with `not_a_customer` (404 shape:
   "This sign-in is for customers"); otherwise the scope loses its staff

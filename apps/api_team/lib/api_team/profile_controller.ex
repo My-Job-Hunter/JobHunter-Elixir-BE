@@ -1,6 +1,6 @@
 defmodule ApiTeam.ProfileController do
   @moduledoc """
-  Profiles (JH-01 §6.2). `PATCH /profiles/:id` goes to the pitch verb or the
+  Profiles (AQ-01 §6.2). `PATCH /profiles/:id` goes to the pitch verb or the
   facts verb by its fields (`Core.Customers.Profiles.update/3`); a body
   that mixes the two is `validation_failed`.
   """

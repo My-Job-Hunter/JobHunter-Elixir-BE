@@ -1,6 +1,6 @@
 defmodule Data.Accounts.PersonPhoto do
   @moduledoc """
-  The link between a person and their photo in `media` (JH-01 §4.1): one
+  The link between a person and their photo in `media` (AQ-01 §4.1): one
   link table per owner, so `media` knows nothing about what it illustrates
   and `persons` carries no column that cannot hold its foreign key.
   """

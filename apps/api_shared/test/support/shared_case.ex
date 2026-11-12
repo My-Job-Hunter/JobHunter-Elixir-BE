@@ -25,7 +25,7 @@ defmodule ApiShared.SharedCase do
     ApiShared.Routes.shared_pipelines()
 
     scope "/v1" do
-      pipe_through [:api, :jh_shared]
+      pipe_through [:api, :aq_shared]
       ApiShared.Routes.shared_routes()
     end
 

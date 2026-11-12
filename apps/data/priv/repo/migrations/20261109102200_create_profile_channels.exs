@@ -2,7 +2,7 @@ defmodule Data.Repo.Migrations.CreateProfileChannels do
   use Ecto.Migration
 
   @moduledoc """
-  Which channels a profile works through (JH-01 §4.3; PLAN §4). A channel
+  Which channels a profile works through (AQ-01 §4.3; PLAN §4). A channel
   belongs to the customer; this links it to the profiles that use it. Both
   sides going takes the link with them.
   """
