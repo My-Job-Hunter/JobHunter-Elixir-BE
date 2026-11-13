@@ -8,8 +8,10 @@ defmodule Core.Conversations.Record do
     confidence; `conversation_linked` (staff) on the lead; the
     conversation's customer set from the lead's; and, when the
     conversation had messages, their `message_in` / `message_out` dated as
-    sent, so History and the follow-ups read them. **A conversation links
-    only to its own team's leads, about one customer.**
+    sent, so History and the follow-ups read them; an invitation its mails
+    carry proposes a meeting on the lead then (AQ-09 §9,
+    `Core.Meetings.Proposals.on_link/4`). **A conversation links only to
+    its own team's leads, about one customer.**
   - **a message** (`message/4`): `message_in` / `message_out` on each of
     its leads — customer-visible when the team has
     `customer_sees_conversations` on, staff-only otherwise, and never for a
@@ -26,6 +28,7 @@ defmodule Core.Conversations.Record do
   alias Core.Conversations.Notices
   alias Core.Leads
   alias Core.Leads.{Ledger, Words}
+  alias Core.Meetings.Proposals
   alias Core.Realtime
   alias Data.Conversations, as: Store
   alias Data.Conversations.{Conversation, Message}
@@ -69,7 +72,8 @@ defmodule Core.Conversations.Record do
      [
        Realtime.lead_events("lead_updated", lead),
        Realtime.message_added(lead.id, c.id),
-       Realtime.triage_changed(c.team_id)
+       Realtime.triage_changed(c.team_id),
+       Proposals.on_link(scope, c, lead, now)
      ]}
   end
 

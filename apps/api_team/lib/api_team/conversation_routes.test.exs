@@ -13,11 +13,11 @@ defmodule ApiTeam.ConversationRoutesTest do
   @contact ~w(can company created_by handles id is_do_not_contact leads location merged_into
               name notes_md source time_zone title)
   @message ~w(attachments body_html body_text can captured_via children classification deleted direction
-              from id is_internal parent_id parent_missing sent_at to_text)
+              from id invite is_internal parent_id parent_missing sent_at to_text)
   @conversation ~w(channel gaps id ignored_at last_message_at leads messages participants platform
                    subject team)
-  @meeting ~w(address attendees can clash ends_at id join_url lead meeting_kind notes_md outcome_note
-              platform sequence source starts_at status time_zone title)
+  @meeting ~w(address attendees can clash ends_at from_message id join_url lead meeting_kind notes_md
+              outcome_note platform proposal sequence source starts_at status time_zone title)
 
   setup do
     c = board_cast_fixture()
@@ -223,7 +223,7 @@ defmodule ApiTeam.ConversationRoutesTest do
     triage = body(call(c.muaz, :get, "/v1/triage?team_id=#{c.backend.id}"))
     assert keys(triage) == ~w(items team)
     [item] = triage["items"]
-    assert keys(item) == ~w(candidates conversation first_message)
+    assert keys(item) == ~w(candidates conversation customer first_message profile)
     assert item["first_message"]["children"] == []
 
     no_link =

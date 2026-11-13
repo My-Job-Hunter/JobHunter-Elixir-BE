@@ -6,6 +6,14 @@ defmodule Data.Customers.Channel do
   no caller can forget it, and so is `identity_key` (AQ-05 §8,
   `Utils.ChannelKey`): the account itself, one per kind among live
   channels, so one account belongs to one person.
+
+  **An email channel's `inbound_token`** (AQ-09 §6.1, QP9-5) is made here
+  when the channel becomes an email channel, so no caller can forget it,
+  and dropped when it stops being one (the CHECK holds both ways); *New
+  address* replaces it (`Data.Channels.renew_token/1`). The address is
+  built from it and config (`Core.Inbound.address/1`), never stored.
+  `forwarding` is virtual: what the channel's sheet shows of the
+  forwarding, filled by `Core.Customers.Channels` for the reader.
   """
 
   use Data.Schema
@@ -28,7 +36,9 @@ defmodule Data.Customers.Channel do
     field(:identity_key, :string)
     field(:operated_by, Ecto.Enum, values: @operators, default: :customer)
     field(:listens_via, Ecto.Enum, values: @listeners, default: :none)
-    field(:inbound_address, :string)
+    field(:inbound_token, :string)
+    field(:last_inbound_at, :utc_datetime_usec)
+    field(:forwarding, :map, virtual: true)
     field(:last_seen_at, :utc_datetime_usec)
     field(:status, Ecto.Enum, values: @statuses, default: :active)
     field(:archived_at, :utc_datetime_usec)
@@ -49,6 +59,7 @@ defmodule Data.Customers.Channel do
     |> update_change(:label, &(&1 && String.trim(&1)))
     |> put_normalized()
     |> put_identity()
+    |> put_token()
     |> validate_required([:customer_id, :kind, :handle, :handle_normalized, :operated_by])
     |> validate_length(:handle, min: 1, max: 300)
     |> validate_length(:label, max: 80)
@@ -67,7 +78,34 @@ defmodule Data.Customers.Channel do
       error_key: :handle,
       message: "is already a channel of a customer: one account belongs to one person"
     )
+    |> check_constraint(:kind, name: :inbound_token_only_email)
+    |> unique_constraint(:inbound_token, name: :channels_inbound_token_index)
     |> foreign_key_constraint(:customer_id)
+  end
+
+  # An email channel always has a token; no other kind has one.
+  defp put_token(changeset) do
+    case {get_field(changeset, :kind), get_field(changeset, :inbound_token)} do
+      {:email, nil} -> put_change(changeset, :inbound_token, new_token())
+      {:email, _token} -> changeset
+      {_other, nil} -> changeset
+      {_other, _token} -> put_change(changeset, :inbound_token, nil)
+    end
+  end
+
+  @alphabet ~c"abcdefghjkmnpqrstuvwxyz23456789"
+
+  @doc """
+  A fresh token (AQ-09 §6.1): ten characters of `a–z` and `2–9` without
+  the look-alikes (`i`, `l`, `o`), random.
+  """
+  @spec new_token() :: String.t()
+  def new_token do
+    size = length(@alphabet)
+
+    for <<byte <- :crypto.strong_rand_bytes(10)>>, into: "" do
+      <<Enum.at(@alphabet, rem(byte, size))>>
+    end
   end
 
   # The key follows the handle and the kind, whichever of them changed.

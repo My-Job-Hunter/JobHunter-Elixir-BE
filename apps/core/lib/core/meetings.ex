@@ -17,6 +17,10 @@ defmodule Core.Meetings do
   cancelled."). **The clash** (QP6-17) warns of the customer's scheduled
   meeting on another lead, any team — another team's (or one the reader
   may not see) named only as "another meeting" — and never blocks.
+
+  **Proposed meetings** (AQ-09 QP9-12, `Core.Meetings.Proposals`) are
+  staff's to confirm: the customer never sees one (`not_found`, never
+  listed); staff see them on the lead and the Meetings page.
   """
 
   alias Core.Access
@@ -43,9 +47,13 @@ defmodule Core.Meetings do
   @spec fetch(Scope.t(), atom(), term()) :: {:ok, Meeting.t()} | {:error, term()}
   def fetch(%Scope{} = scope, action, id) do
     with %Meeting{} = m <- Store.get(Scope.organisation_id(scope), id) || {:error, :not_found},
+         true <- shown?(scope, m) || {:error, :not_found},
          :ok <- Access.why_not(scope, action, {:meeting, subject(m)}),
          do: {:ok, m}
   end
+
+  # The customer never sees a proposed meeting (AQ-09 §11.4).
+  defp shown?(scope, m), do: not (Scope.customer?(scope) and m.status == :proposed)
 
   @doc "What `Core.Access.Conversations` decides a meeting on."
   @spec subject(Meeting.t()) :: map()
@@ -74,7 +82,9 @@ defmodule Core.Meetings do
       items =
         (narrow ++ [from: from, to: to, now: now])
         |> Store.list()
-        |> Enum.filter(&Access.can?(scope, :read, {:meeting, subject(&1)}))
+        |> Enum.filter(
+          &(shown?(scope, &1) and Access.can?(scope, :read, {:meeting, subject(&1)}))
+        )
         |> Enum.map(&view(scope, &1))
 
       {:ok, %{items: items}}
@@ -98,9 +108,11 @@ defmodule Core.Meetings do
   def for_lead(%Scope{} = scope, lead_id, %DateTime{} = now) do
     with {:ok, lead} <- Leads.fetch(scope, :read, lead_id) do
       {upcoming, rest} =
-        Enum.split_with(
-          Store.for_lead(lead.id),
-          &(&1.status == :scheduled and DateTime.after?(&1.ends_at, now))
+        lead.id
+        |> Store.for_lead()
+        |> Enum.filter(&shown?(scope, &1))
+        |> Enum.split_with(
+          &(&1.status in [:scheduled, :proposed] and DateTime.after?(&1.ends_at, now))
         )
 
       {:ok,
@@ -120,6 +132,7 @@ defmodule Core.Meetings do
          lc <- ContactStore.leads_of(contact.id),
          m <- Store.for_lead(lc.lead_id),
          Enum.any?(m.attendees, &(&1.contact_id == contact.id)),
+         shown?(scope, m),
          Access.can?(scope, :read, {:meeting, subject(m)}),
          do: view(scope, m)
        )}
@@ -311,6 +324,9 @@ defmodule Core.Meetings do
 
   defp scheduled?(%Meeting{status: :scheduled}), do: :ok
 
+  defp scheduled?(%Meeting{status: :proposed}),
+    do: Leads.invalid("status", "This meeting is only proposed: confirm it first.")
+
   defp scheduled?(%Meeting{status: status}),
     do: Leads.invalid("status", "This meeting is already #{status_words(status)}.")
 
@@ -436,10 +452,23 @@ defmodule Core.Meetings do
     end
   end
 
-  defp events(lead, m),
+  @doc false
+  # P6's reschedule and cancel, inside the caller's transaction (AQ-09's
+  # *Confirm* of a proposed change): `{:ok, meeting, events}`.
+  def apply_reschedule(scope, m, attrs, now), do: rescheduled(scope, m, attrs, now)
+
+  @doc false
+  def apply_cancel(scope, m, now) do
+    attrs = %{status: :cancelled, outcome_note: nil, sequence: m.sequence + 1}
+    ended(scope, m, attrs, {:cancel, :meeting_cancelled, "Cancelled"}, now)
+  end
+
+  @doc false
+  def events(lead, m),
     do: [Realtime.meeting_changed(lead, m.id), Realtime.lead_events("lead_updated", lead)]
 
-  defp audit_change(scope, before, updated, now) do
+  @doc false
+  def audit_change(scope, before, updated, now) do
     old = snapshot(before)
     new = snapshot(updated)
     keys = for {k, v} <- new, old[k] != v, do: k

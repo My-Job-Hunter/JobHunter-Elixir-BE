@@ -82,15 +82,26 @@ defmodule ApiShared.CustomersJSON do
       handle_normalized: ch.handle_normalized,
       operated_by: ch.operated_by,
       listens_via: ch.listens_via,
-      inbound_address: ch.inbound_address,
       last_seen_at: ch.last_seen_at,
       status: ch.status,
       archived_at: ch.archived_at,
       profile_ids: Enum.map(ch.profile_channels, & &1.profile_id),
+      forwarding: forwarding(ch.forwarding),
       inserted_at: ch.inserted_at,
       updated_at: ch.updated_at
     }
   end
+
+  defp forwarding(%{} = f) do
+    %{
+      address: f.address,
+      last_inbound_at: f.last_inbound_at,
+      confirmation: f.confirmation && Map.take(f.confirmation, [:code, :url, :received_at]),
+      can_renew: f.can_renew
+    }
+  end
+
+  defp forwarding(_none), do: nil
 
   @doc "A document: its version chain, whether it is the profile's default, and its file or link."
   def document(%Document{} = d) do

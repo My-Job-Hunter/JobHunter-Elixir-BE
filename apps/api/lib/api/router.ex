@@ -16,7 +16,10 @@ defmodule Api.Router do
   client route; the scope below carries the reason. Anything else answers
   `404` in the house error shape.
 
-  `/inbound/email` (the provider's webhook, PLAN §15.1) joins here in P9.
+  **`POST /inbound/email`** (AQ-09 §6.2, PLAN §15.1) is the mail
+  provider's webhook, at the root and outside the three apps: no app's
+  token reaches it, basic auth does (`Api.InboundController`). Its body
+  may be 30 MB, on that route alone (`Api.Endpoint.parse/2`).
   """
 
   use Phoenix.Router
@@ -46,6 +49,14 @@ defmodule Api.Router do
     get "/info", InfoController, :show
   end
 
+  # **Forwarded mail** (AQ-09 §6.2): the provider posts each delivery here
+  # with the basic-auth pair in its URL. No app token, no session.
+  scope "/inbound", Api do
+    pipe_through [:api, :aq_shared]
+
+    post "/email", InboundController, :email
+  end
+
   # **The dev mailbox** (AQ-01 §3): every mail a dev build sends lands in
   # Swoosh's in-memory mailbox, read here. Compiled in only when
   # `config :api, dev_routes: true` (dev.exs), so a release has no such route.
@@ -54,6 +65,14 @@ defmodule Api.Router do
       pipe_through [:aq_shared]
 
       forward "/mailbox", Plug.Swoosh.MailboxPreview
+    end
+
+    # **A forwarded mail by hand** (AQ-09 §6.3): `{to, eml}` through the
+    # webhook's own intake, `provider: dev`.
+    scope "/dev", Api do
+      pipe_through [:api, :aq_shared]
+
+      post "/inbound", InboundController, :dev
     end
 
     # **The push outbox** (AQ-08 QP8-16), beside the mailbox: every push a

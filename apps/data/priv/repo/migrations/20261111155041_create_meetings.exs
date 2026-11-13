@@ -12,11 +12,19 @@ defmodule Data.Repo.Migrations.CreateMeetings do
   ICS file's), `meeting_changed`, and the reminders re-planned. The
   partial index on scheduled meetings serves the reminders, the Meetings
   page and the clash warning. A purged lead takes its meetings.
+
+  **`proposed`** (AQ-09 §9, QP9-12): a meeting an invitation (`.ics`)
+  proposed, waiting for a person's *Confirm*: no reminders, no notices to
+  the customer. Only an invitation proposes (`source = email_invite`).
+  `from_message_id` is the mail it came in; `proposal` is what the
+  invitation said, frozen (`{organizer, method, uid, sequence}`), plus a
+  `change` an updated or cancelled invitation proposes on a confirmed
+  meeting.
   """
 
   @kinds ~w(screening technical assessment_review ai_interview final client_call other)
   @platforms ~w(zoom google_meet teams upwork phone on_site other)
-  @statuses ~w(scheduled done cancelled no_show)
+  @statuses ~w(proposed scheduled done cancelled no_show)
   @sources ~w(manual email_invite extension)
 
   def change do
@@ -41,6 +49,8 @@ defmodule Data.Repo.Migrations.CreateMeetings do
       add(:notes_md, :text)
       add(:source, :text, null: false, default: "manual")
       add(:sequence, :integer, null: false, default: 0)
+      add(:from_message_id, references(:messages, type: :uuid, on_delete: :nilify_all))
+      add(:proposal, :map)
       add(:created_by_user_id, references(:users, type: :uuid, on_delete: :nilify_all))
 
       timestamps()
@@ -60,6 +70,12 @@ defmodule Data.Repo.Migrations.CreateMeetings do
 
     create(constraint(:meetings, :sequence_whole, check: "sequence >= 0"))
 
+    create(
+      constraint(:meetings, :proposed_from_invite,
+        check: "status <> 'proposed' OR source = 'email_invite'"
+      )
+    )
+
     create(index(:meetings, [:lead_id, :starts_at]))
 
     create(
@@ -70,6 +86,7 @@ defmodule Data.Repo.Migrations.CreateMeetings do
     )
 
     create(index(:meetings, [:created_by_user_id]))
+    create(index(:meetings, [:from_message_id]))
 
     execute(
       "CREATE TRIGGER touch_updated_at BEFORE UPDATE ON meetings " <>

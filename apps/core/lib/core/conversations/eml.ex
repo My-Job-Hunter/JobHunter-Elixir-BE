@@ -5,7 +5,7 @@ defmodule Core.Conversations.Eml do
 
   `%{message_id, in_reply_to, references, from: {name, address}, to:
   [{name, address}], cc, subject, sent_at, text, html, attachments:
-  [%{filename, content_type, bytes}]}`.
+  [%{filename, content_type, bytes}], calendar}`.
 
   The `mail` package parses the headers and the multipart; bodies are
   decoded (base64, quoted-printable) and turned into UTF-8 from their
@@ -14,6 +14,10 @@ defmodule Core.Conversations.Eml do
   `Content-Disposition: attachment`) is an attachment, whose bytes
   `Core.Media` sniffs before it is kept. Anything it cannot read is
   `{:error, :unreadable}`.
+
+  `calendar` (AQ-09 §9) is the text of the first invitation part — a
+  `text/calendar` or `application/ics` part, or a `.ics` file — or `nil`;
+  `Core.Meetings.Invite` reads it.
   """
 
   alias Mail.Parsers.RFC2822
@@ -49,7 +53,8 @@ defmodule Core.Conversations.Eml do
          sent_at: date(headers["date"]),
          text: text,
          html: html,
-         attachments: attachments(parts)
+         attachments: attachments(parts),
+         calendar: calendar(parts)
        }}
     end
   end
@@ -125,6 +130,17 @@ defmodule Core.Conversations.Eml do
     for p <- parts, attachment?(p), is_binary(p.body), byte_size(p.body) > 0 do
       %{filename: filename(p), content_type: type(p), bytes: p.body}
     end
+  end
+
+  defp calendar(parts) do
+    Enum.find_value(parts, fn p ->
+      name = filename(p) || ""
+
+      if (type(p) in ["text/calendar", "application/ics"] or
+            String.ends_with?(String.downcase(name), ".ics")) and is_binary(p.body) and
+           p.body != "",
+         do: String.replace_invalid(p.body, "?")
+    end)
   end
 
   defp attachment?(part),

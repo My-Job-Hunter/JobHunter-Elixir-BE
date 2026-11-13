@@ -10,9 +10,15 @@ defmodule Data.Repo.Migrations.CreateConversationLeads do
   sender's handle), so a likely link is visible and undoable from the lead.
   A purged lead takes its links; a conversation only it held goes with it
   (AQ-06 §10).
+
+  P9 (AQ-09 §7) adds `receiving_inbox` (the forwarding address's customer,
+  likely), `platform_notice` (a job board's application notice, likely)
+  and `sender_domain` (never a link: triage candidates only, kept so the
+  list is the vocabulary's).
   """
 
-  @methods ~w(by_hand headers thread_id sender_handle created_from_triage)
+  @methods ~w(by_hand headers thread_id sender_handle created_from_triage receiving_inbox
+               sender_domain platform_notice)
 
   def change do
     create table(:conversation_leads, primary_key: false) do

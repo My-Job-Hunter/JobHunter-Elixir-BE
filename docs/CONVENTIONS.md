@@ -293,6 +293,25 @@ anyone but the system admin is `forbidden` with "Only the system admin can
 see delivery health."; a console or portal token on
 `/ext/v1/notifications/pop-ups` is P5's `401 unauthenticated`.
 
+### P9 (AQ-09 §4, §11.4)
+
+| Status | `code` | When |
+|---|---|---|
+| 409 | `meeting_not_proposed` | `POST /meetings/:id/confirm` or `/dismiss` on a meeting with nothing waiting for a person — not `proposed`, and no proposed change (`{:error, {:meeting_not_proposed, meeting}}`): "This meeting isn't waiting for a confirmation."; `details: {status}` as it is now |
+| 503 | `inbound_off` | `POST /inbound/email` on a server with no `INBOUND_PASSWORD` (`config :core, :inbound, password:`): "Forwarded mail isn't set up on this server." |
+| 401 | *(no body)* | `POST /inbound/email` with a wrong basic-auth pair, or none (`{:error, :inbound_unauthorised}`): `www-authenticate: Basic realm="inbound"`, an empty body (AQ-09 §4) — the provider's request, not a person's |
+
+Everything else is P1's or a field error: the webhook over 30 MB is P1's
+413 `file_too_large` (`details.max_bytes`); one address flooding it is the
+429 `rate_limited`; *New address* on a channel that isn't email is a 422
+on `kind` ("Only an email channel has a forwarding address."), and by
+staff owning none of its profiles `forbidden` with "Only the customer's
+leads and owners can change it."; a verb on a proposed meeting other
+than *Confirm* · *Dismiss* is a 422 on `status` ("This meeting is only
+proposed: confirm it first."). **The webhook answers 200 for every mail
+it accepted** — an unknown address and an unreadable mail included
+(QP9-7) — with `{outcome}`.
+
 ### Reserved (PLAN §15.5), arriving with the phases that raise them
 
 | Status | `code` | When |

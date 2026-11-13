@@ -15,7 +15,8 @@ defmodule Data.Meetings do
   def preload do
     [
       lead: Data.Leads.base_preload(),
-      attendees: [:contact, user: [person: :photo]]
+      attendees: [:contact, user: [person: :photo]],
+      from_message: :conversation
     ]
   end
 
@@ -44,7 +45,7 @@ defmodule Data.Meetings do
   @doc """
   The meetings of a team's leads (`team_id`) or a customer's
   (`customer_id`): between `from` and `to` by start when given, else every
-  scheduled one that has not ended by `now`. By start.
+  scheduled (or proposed, AQ-09) one that has not ended by `now`. By start.
   """
   @spec list(keyword()) :: [Meeting.t()]
   def list(opts) do
@@ -73,7 +74,7 @@ defmodule Data.Meetings do
   end
 
   defp window(query, nil, nil, %DateTime{} = now),
-    do: where(query, [m], m.status == :scheduled and m.ends_at > ^now)
+    do: where(query, [m], m.status in [:scheduled, :proposed] and m.ends_at > ^now)
 
   defp window(query, from, to, _now) do
     query
@@ -156,6 +157,25 @@ defmodule Data.Meetings do
     with {:ok, updated} <- m |> Meeting.changeset(attrs) |> Repo.update(),
          do: {:ok, reload(updated)}
   end
+
+  @doc """
+  The lead's meeting an invitation with this `UID` made (AQ-09 §9: the
+  same UID again updates it), or `nil`.
+  """
+  @spec by_invite(binary(), String.t()) :: Meeting.t() | nil
+  def by_invite(lead_id, uid) do
+    from(m in Meeting,
+      where: m.lead_id == ^lead_id and fragment("?->>'uid' = ?", m.proposal, ^uid),
+      order_by: [desc: m.inserted_at],
+      limit: 1
+    )
+    |> load_all()
+    |> List.first()
+  end
+
+  @doc "A meeting deleted (a dismissed proposal); its attendees cascade."
+  @spec delete(Meeting.t()) :: {:ok, Meeting.t()} | {:error, Ecto.Changeset.t()}
+  def delete(%Meeting{} = m), do: Repo.delete(m)
 
   @doc "An attendee of a meeting."
   @spec add_attendee(map()) :: {:ok, Attendee.t()} | {:error, Ecto.Changeset.t()}

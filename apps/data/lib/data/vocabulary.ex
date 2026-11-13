@@ -103,15 +103,18 @@ defmodule Data.Vocabulary do
   @contact_sources ~w(manual email extension import)
   @contact_handle_kinds ~w(email linkedin upwork phone other)
   @contact_roles ~w(recruiter hiring_manager interviewer client referrer other)
-  @match_methods ~w(by_hand headers thread_id sender_handle created_from_triage)
+  @match_methods ~w(by_hand headers thread_id sender_handle created_from_triage receiving_inbox
+                     sender_domain platform_notice)
   @match_confidences ~w(sure likely)
   @message_directions ~w(in out)
   @message_from_kinds ~w(contact user customer text)
   @message_captures ~w(manual eml_upload extension forward oauth_sync)
   @message_classes ~w(interested interview_invitation more_info rejection position_closed
                       unsubscribe bounce general)
-  @meeting_statuses ~w(scheduled done cancelled no_show)
+  @meeting_statuses ~w(proposed scheduled done cancelled no_show)
   @meeting_sources ~w(manual email_invite extension)
+  @inbound_outcomes ~w(landed duplicate unknown_address gmail_confirmation unreadable too_large)
+  @inbound_providers ~w(postmark dev)
   @delivery_channels ~w(push email extension)
   @delivery_states ~w(pending sent skipped failed)
   @delivery_skip_reasons ~w(read no_target preference_off)
@@ -268,7 +271,12 @@ defmodule Data.Vocabulary do
   def contact_handle_kinds, do: @contact_handle_kinds
   @doc "What a contact is on a lead (AQ-06 §5.1)."
   def contact_roles, do: @contact_roles
-  @doc "How a conversation was linked to a lead (AQ-06 §7.2)."
+
+  @doc """
+  How a conversation was linked to a lead (AQ-06 §7.2; AQ-09 §7 adds the
+  receiving inbox, the sender's domain (triage candidates only, never a
+  link) and a platform's notice).
+  """
   def match_methods, do: @match_methods
 
   @doc "How sure a link is (AQ-06 §7.2): `sure` for headers and a thread id, `likely` for a sender's handle."
@@ -283,10 +291,16 @@ defmodule Data.Vocabulary do
   def message_captures, do: @message_captures
   @doc "A reply's class (AQ-06 §7.3), each moving the lead through P4a's own verb."
   def message_classes, do: @message_classes
-  @doc "A meeting's status (QP6-15): a reschedule is an event, not a status."
+
+  @doc "A meeting's status (QP6-15): a reschedule is an event, not a status; AQ-09 QP9-12's `proposed` waits for a person's *Confirm*."
   def meeting_statuses, do: @meeting_statuses
   @doc "Where a meeting came from: by hand in P6; an invitation (P9), the extension later."
   def meeting_sources, do: @meeting_sources
+
+  @doc "What became of a forwarded mail (AQ-09 §5): the intake log's `outcome`."
+  def inbound_outcomes, do: @inbound_outcomes
+  @doc "Who delivered it (AQ-09 §5): the provider's webhook, or `POST /dev/inbound`."
+  def inbound_providers, do: @inbound_providers
 
   @doc "The channels a delivery row is for (AQ-08 §5): in-app is the row itself, the digest is read by the scan."
   def delivery_channels, do: @delivery_channels
@@ -385,6 +399,8 @@ defmodule Data.Vocabulary do
       message_classes: @message_classes,
       meeting_statuses: @meeting_statuses,
       meeting_sources: @meeting_sources,
+      inbound_outcomes: @inbound_outcomes,
+      inbound_providers: @inbound_providers,
       delivery_channels: @delivery_channels,
       delivery_states: @delivery_states,
       delivery_skip_reasons: @delivery_skip_reasons,

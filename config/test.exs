@@ -83,3 +83,6 @@ config :api, cors_origins: ["http://localhost:5800", "http://localhost:5801"]
 
 # Initialize plugs at runtime for faster test compilation.
 config :phoenix, :plug_init_mode, :runtime
+
+# Forwarded mail's webhook (AQ-09 §6.2): the suite's own basic-auth pair.
+config :core, :inbound, user: "postmark", password: "inbound-test"

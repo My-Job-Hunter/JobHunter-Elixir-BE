@@ -58,6 +58,7 @@ defmodule ApiClient.Router do
       post "/channels", ChannelController, :create
       patch "/channels/:id", ChannelController, :update
       post "/channels/:id/archive", ChannelController, :archive
+      post "/channels/:id/inbound-address", ChannelController, :renew_address
 
       get "/profiles/:id/documents", DocumentController, :index
       post "/profiles/:id/documents", DocumentController, :create

@@ -18,7 +18,7 @@ defmodule Core.Access do
   | `{:team, team}` | `id` |
   | `{:invitation, inv}` | `kind`, `team_id`; `customer` for a customer invitation |
   | `{:customer, customer}` | `id`, `team_ids` (the teams serving them; `Data.Customers` fills it) |
-  | `{:profile, profile}` · `{:channel, channel}` | `customer` as above |
+  | `{:profile, profile}` · `{:channel, channel}` | `customer` as above; a channel's `:renew_address` also `owner_user_ids` (AQ-09 §4) |
   | `{:document, document}` | `profile` with its `customer` |
   | `{:skill, skill}` | — |
   | `{:task, task}` | `author_user_id`, `team_id`, `customer_id`, `customer_access`, `state`, `source`, `archived_at`, `participants`, `steps` (AQ-02 §6; decided by `Core.Access.Tasks`) |
@@ -62,6 +62,7 @@ defmodule Core.Access do
   """
 
   alias Core.Access.Approvals
+  alias Core.Access.Channels
   alias Core.Access.Conversations
   alias Core.Access.Jobs
   alias Core.Access.Leads
@@ -230,6 +231,10 @@ defmodule Core.Access do
   defp decide(scope, action, {:channel, %{customer: customer}}) when action in @asset_actions do
     asset_action(reach(scope, customer))
   end
+
+  # *New address* (AQ-09 §4): `Core.Access.Channels` decides on the reach.
+  defp decide(scope, :renew_address, {:channel, %{customer: customer} = channel}),
+    do: Channels.renew_address(scope, channel, reach(scope, customer))
 
   defp decide(scope, action, {:document, %{profile: %{customer: customer}}})
        when action in @asset_actions do

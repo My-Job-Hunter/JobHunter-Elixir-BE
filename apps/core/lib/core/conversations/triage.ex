@@ -27,7 +27,7 @@ defmodule Core.Conversations.Triage do
   alias Core.Contacts
   alias Core.Contacts.LeadLinks
   alias Core.Conversations
-  alias Core.Conversations.Record
+  alias Core.Conversations.{Match, Record}
   alias Core.Leads
   alias Core.Leads.{Sheet, Signals}
   alias Core.Realtime
@@ -65,13 +65,25 @@ defmodule Core.Conversations.Triage do
     %{
       conversation: Conversations.view(scope, c, messages),
       first_message: first && Conversations.node(scope, c, first),
-      candidates: candidates(scope, c, messages)
+      candidates: candidates(scope, c, messages),
+      profile: receiving_profile(c),
+      customer: c.customer && %{id: c.customer.id, display_name: c.customer.display_name}
     }
+  end
+
+  # The receiving channel's profile, when it serves exactly one (AQ-09 §11.4).
+  defp receiving_profile(c) do
+    case Match.profiles(c.channel) do
+      [p] -> %{id: p.id, title: p.title}
+      _none_or_several -> nil
+    end
   end
 
   @doc """
   A triage item's candidates (§7.2 rule 3): the open leads of its team
-  holding one of its contacts, those the caller sees, each with why.
+  holding one of its contacts, those the caller sees, each with why; then
+  AQ-09 §7's — the leads at the sender's domain and those a platform's
+  notice may mean (`Core.Conversations.Match.candidates/3`).
   """
   @spec candidates(Scope.t(), map(), list()) :: [map()]
   def candidates(scope, c, messages) do
@@ -83,12 +95,16 @@ defmodule Core.Conversations.Triage do
 
     names = c.participants |> Map.new(&{&1.contact_id, &1.contact.name})
 
-    for {lead_id, contact_id} <- ContactStore.open_leads_holding(c.team_id, contacts, nil),
-        lead = Data.Leads.get(c.organisation_id, lead_id),
-        lead && Access.can?(scope, :read, {:lead, Leads.subject(lead)}),
-        uniq: true do
-      who = Map.get(names, contact_id) || "Sender"
+    by_contact =
+      for {lead_id, contact_id} <- ContactStore.open_leads_holding(c.team_id, contacts, nil),
+          do: {lead_id, "#{Map.get(names, contact_id) || "Sender"} is a contact on"}
 
+    more =
+      for {lead_id, why} <- Match.candidates(c, messages, Core.Clock.now()), do: {lead_id, {why}}
+
+    for {lead_id, why} <- Enum.uniq_by(by_contact ++ more, &elem(&1, 0)),
+        lead = Data.Leads.get(c.organisation_id, lead_id),
+        lead && Access.can?(scope, :read, {:lead, Leads.subject(lead)}) do
       %{
         lead:
           lead
@@ -98,10 +114,13 @@ defmodule Core.Conversations.Triage do
             title: lead.job.title,
             company: lead.job.company && %{id: lead.job.company.id, name: lead.job.company.name}
           }),
-        why: "#{who} is a contact on #{Conversations.lead_title(lead)}"
+        why: why(why, lead)
       }
     end
   end
+
+  defp why({words}, _lead), do: words
+  defp why(words, lead), do: "#{words} #{Conversations.lead_title(lead)}"
 
   # ── The actions ─────────────────────────────────────────────────────────────
 

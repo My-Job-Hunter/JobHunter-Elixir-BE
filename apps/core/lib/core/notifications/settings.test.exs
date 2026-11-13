@@ -33,7 +33,7 @@ defmodule Core.Notifications.SettingsTest do
     uses = Map.new(settings.groups, &{&1.key, &1.uses})
     assert uses["tasks"] == ~w(push digest)
     assert uses["leads"] == ~w(push email digest)
-    assert uses["conversations"] == ~w(push extension digest)
+    assert uses["conversations"] == ~w(push email extension digest)
     assert uses["meetings"] == ~w(push email)
     assert uses["approvals"] == ~w(push email)
     assert uses["account"] == ~w(push email)

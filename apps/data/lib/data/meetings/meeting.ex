@@ -4,11 +4,17 @@ defmodule Data.Meetings.Meeting do
   it was set in), its status, and `sequence`, the ICS file's revision. A
   reschedule moves the times and the sequence; it is never a status
   (QP6-15).
+
+  AQ-09 (QP9-12): `proposed` is a meeting an invitation proposed, waiting
+  for a person; `from_message_id` the mail it came in, `proposal` what the
+  invitation said (`organizer`, `method`, `uid`, `sequence`, and a
+  `change` proposed on a confirmed meeting).
   """
 
   use Data.Schema
 
   alias Data.Accounts.User
+  alias Data.Conversations.Message
   alias Data.Leads.Lead
   alias Data.Meetings.Attendee
   alias Data.Organisations.Organisation
@@ -37,10 +43,12 @@ defmodule Data.Meetings.Meeting do
     field(:notes_md, :string)
     field(:source, Ecto.Enum, values: @sources, default: :manual)
     field(:sequence, :integer, default: 0)
+    field(:proposal, :map)
 
     belongs_to(:organisation, Organisation)
     belongs_to(:lead, Lead)
     belongs_to(:created_by_user, User)
+    belongs_to(:from_message, Message)
     has_many(:attendees, Attendee)
 
     timestamps()
@@ -61,6 +69,8 @@ defmodule Data.Meetings.Meeting do
       :outcome_note,
       :source,
       :sequence,
+      :proposal,
+      :from_message_id,
       :created_by_user_id | @editable
     ])
     |> update_change(:title, &(&1 && String.trim(&1)))
@@ -88,6 +98,10 @@ defmodule Data.Meetings.Meeting do
     |> check_constraint(:source, name: :source_known)
     |> check_constraint(:ends_at, name: :ends_after_starts, message: "must be after it starts")
     |> check_constraint(:title, name: :title_present, message: "can't be blank")
+    |> check_constraint(:status,
+      name: :proposed_from_invite,
+      message: "only an invitation proposes"
+    )
   end
 
   defp validate_order(changeset) do

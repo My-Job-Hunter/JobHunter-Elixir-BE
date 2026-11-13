@@ -38,7 +38,9 @@ defmodule Mix.Tasks.Aq.World do
   profiles); the selector documents are the reference seed's v1. P6
   (AQ-06 §13, `Api.World.Conversations`): *Mei Chen* (recruiter, Juniper
   Edge) and *Omar Haddad* (hiring manager, Corvid Security), the contacts
-  the run starts from.
+  the run starts from. P9 (AQ-09 §13 step 0, `Api.World.Extension.email/2`):
+  an email channel each for Tanweer and Naveed, each with its forwarding
+  address.
 
   **Last, the standard test set** (`Core.Standard`, the same function
   `mix aq.seed_standard` runs; `docs/TEST-ACCOUNTS.md`): Team 1, 2 and 3 with
@@ -124,6 +126,7 @@ defmodule Mix.Tasks.Aq.World do
       &Extension.channels(&1, snap)
     )
     |> step("P6's contacts: Mei Chen and Omar Haddad", &Conversations.contacts(&1, snap))
+    |> step("P9's email channels: Tanweer's and Naveed's", &Extension.email(&1, snap))
     |> step("the standard set: Team 1–3, their people and 21 jobs", &standard/1)
 
     counts()

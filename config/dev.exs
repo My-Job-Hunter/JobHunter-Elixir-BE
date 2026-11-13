@@ -80,6 +80,11 @@ config :core, dev_clock: true
 # Only here; test and a release keep the whole rule (`Core.Accounts.Password`).
 config :core, dev_worst_passwords: true
 
+# Forwarded mail's webhook (AQ-09 §6.2): a dev-only basic-auth pair, so
+# `POST /inbound/email` can be tried on a dev server (and refused with a
+# wrong one). A release reads INBOUND_USER and INBOUND_PASSWORD.
+config :core, :inbound, user: "postmark", password: "inbound-dev"
+
 # Google's dev stand-in: `POST /auth/google {id_token: "dev:<email>"}` signs
 # in an account that already has the address. On until GOOGLE_CLIENT_ID is set.
 config :core, :google, stand_in: true

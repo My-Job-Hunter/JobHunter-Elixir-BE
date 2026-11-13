@@ -4,7 +4,9 @@ defmodule Core.Meetings.Sheet do
   attendees, the clash warning (§8.1, QP6-17) and the stage a meeting kind
   offers (QP6-18). **The customer's view is cut here**: no staff note, no
   outcome note, no clash, nothing they may do, staff by first name only
-  when the lead's team shows names.
+  when the lead's team shows names. AQ-09 §11.4 adds `from_message` (the
+  mail an invitation came in) and `proposal` (what it said, and a change
+  waiting for *Confirm*), both staff's alone.
   """
 
   alias Core.Access
@@ -34,6 +36,7 @@ defmodule Core.Meetings.Sheet do
     customer? = Scope.customer?(scope)
     lead = m.lead
     open? = m.status == :scheduled
+    waiting? = m.status in [:scheduled, :proposed]
     names? = customer? and Teams.get_settings(lead.job.team_id).customer_sees_staff_names
 
     %{
@@ -53,11 +56,51 @@ defmodule Core.Meetings.Sheet do
       attendees: Enum.map(m.attendees, &attendee(&1, lead.profile.customer, customer?, names?)),
       sequence: m.sequence,
       source: m.source,
+      from_message: if(customer?, do: nil, else: from_message(m)),
+      proposal: if(customer?, do: nil, else: proposal(m.proposal)),
       clash:
-        if(open? and not customer?, do: clash_for(scope, lead, m.starts_at, m.ends_at, m.id)),
+        if(waiting? and not customer?,
+          do: clash_for(scope, lead, m.starts_at, m.ends_at, m.id)
+        ),
       can: can(scope, m, open?)
     }
   end
+
+  defp from_message(%{from_message: %{id: id, conversation: c}}),
+    do: %{id: id, conversation_id: c.id, subject: c.subject}
+
+  defp from_message(_m), do: nil
+
+  defp proposal(%{} = p) do
+    %{
+      organizer: p["organizer"],
+      method: p["method"],
+      sequence: p["sequence"],
+      change:
+        case p["change"] do
+          %{} = c ->
+            %{
+              starts_at: time(c["starts_at"]),
+              ends_at: time(c["ends_at"]),
+              cancel: c["cancel"] == true
+            }
+
+          _none ->
+            nil
+        end
+    }
+  end
+
+  defp proposal(_none), do: nil
+
+  defp time(iso) when is_binary(iso) do
+    case DateTime.from_iso8601(iso) do
+      {:ok, at, _offset} -> at
+      _bad -> nil
+    end
+  end
+
+  defp time(_none), do: nil
 
   defp lead_ref(lead) do
     job = lead.job

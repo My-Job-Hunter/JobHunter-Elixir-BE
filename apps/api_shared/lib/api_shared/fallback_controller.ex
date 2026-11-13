@@ -217,6 +217,33 @@ defmodule ApiShared.FallbackController do
     respond(conn, 403, "not_reviewer", "This isn't yours to decide.")
   end
 
+  # ── Forwarded mail and invitations (AQ-09 §4, §11.4) ────────────────────────
+
+  # A confirm or dismiss on a meeting with nothing waiting for a person.
+  def call(conn, {:error, {:meeting_not_proposed, %{status: status}}}) do
+    respond(
+      conn,
+      409,
+      "meeting_not_proposed",
+      "This meeting isn't waiting for a confirmation.",
+      %{
+        status: to_string(status)
+      }
+    )
+  end
+
+  # The webhook's wrong basic-auth pair: 401 with no body (AQ-09 §4).
+  def call(conn, {:error, :inbound_unauthorised}) do
+    conn
+    |> put_resp_header("www-authenticate", ~s(Basic realm="inbound"))
+    |> send_resp(401, "")
+  end
+
+  # The webhook with no password configured on this server.
+  def call(conn, {:error, :inbound_off}) do
+    respond(conn, 503, "inbound_off", "Forwarded mail isn't set up on this server.")
+  end
+
   def call(conn, {:error, :conflict}) do
     respond(conn, 409, "conflict", "Somebody else changed this first. Reload and try again.")
   end

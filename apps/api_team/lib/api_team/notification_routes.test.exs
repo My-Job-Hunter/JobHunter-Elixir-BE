@@ -25,7 +25,7 @@ defmodule ApiTeam.NotificationRoutesTest do
              "key" => "conversations",
              "label" => "Conversations",
              "can_disable" => true,
-             "uses" => ["push", "extension", "digest"],
+             "uses" => ["push", "email", "extension", "digest"],
              "push" => true,
              "email" => true,
              "extension" => true,

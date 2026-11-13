@@ -13,6 +13,7 @@ defmodule ApiTeam.MeetingController do
   alias ApiShared.ConversationsJSON, as: JSON
   alias Core.Clock
   alias Core.Meetings
+  alias Core.Meetings.Proposals
 
   action_fallback ApiShared.FallbackController
 
@@ -47,6 +48,16 @@ defmodule ApiTeam.MeetingController do
 
   def cancel(conn, %{"id" => id} = params),
     do: meeting(conn, Meetings.cancel(conn.assigns.scope, id, params, Clock.now()))
+
+  @doc "*Confirm* (AQ-09 §11.4): a proposed meeting scheduled, or a proposed change applied."
+  def confirm(conn, %{"id" => id}),
+    do: meeting(conn, Proposals.confirm(conn.assigns.scope, id, Clock.now()))
+
+  @doc "*Dismiss*: a proposed meeting removed, or a proposed change dropped. 204."
+  def dismiss(conn, %{"id" => id}) do
+    with {:ok, :dismissed} <- Proposals.dismiss(conn.assigns.scope, id, Clock.now()),
+         do: send_resp(conn, :no_content, "")
+  end
 
   def done(conn, %{"id" => id} = params),
     do: meeting(conn, Meetings.done(conn.assigns.scope, id, params, Clock.now()))

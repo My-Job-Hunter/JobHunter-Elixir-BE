@@ -101,6 +101,7 @@ defmodule ApiTeam.Router do
       get "/channels/:id", ChannelController, :show
       patch "/channels/:id", ChannelController, :update
       post "/channels/:id/archive", ChannelController, :archive
+      post "/channels/:id/inbound-address", ChannelController, :renew_address
 
       get "/profiles/:id/documents", DocumentController, :index
       post "/profiles/:id/documents", DocumentController, :create
@@ -281,6 +282,8 @@ defmodule ApiTeam.Router do
       post "/meetings/:id/cancel", MeetingController, :cancel
       post "/meetings/:id/done", MeetingController, :done
       post "/meetings/:id/no-show", MeetingController, :no_show
+      post "/meetings/:id/confirm", MeetingController, :confirm
+      post "/meetings/:id/dismiss", MeetingController, :dismiss
       get "/meetings/:id/ics", MeetingController, :ics
 
       # Approvals (AQ-07 §11.1). `count` before `:id`, so it is not an id.

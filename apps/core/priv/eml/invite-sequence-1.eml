@@ -1,0 +1,46 @@
+Message-ID: <invite-1@corvid.example>
+Date: Thu, 12 Nov 2026 01:00:00 +0000
+From: Omar Haddad <omar.haddad@corvid.example>
+To: Tanweer <tanweer@example.com>
+Subject: Updated invitation: Technical interview @ Thu 19 Nov 15:00 PKT
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="inv-corvid"
+
+--inv-corvid
+Content-Type: text/plain; charset=utf-8
+
+Hi Tanweer, we've had to move the interview to Thursday 15:00.
+
+Omar
+--inv-corvid
+Content-Type: text/calendar; charset=utf-8; method=REQUEST
+
+BEGIN:VCALENDAR
+PRODID:-//Corvid Security//Calendar//EN
+VERSION:2.0
+METHOD:REQUEST
+BEGIN:VTIMEZONE
+TZID:Asia/Karachi
+BEGIN:STANDARD
+TZOFFSETFROM:+0500
+TZOFFSETTO:+0500
+TZNAME:PKT
+DTSTART:19700101T000000
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:corvid-interview-7@corvid.example
+SEQUENCE:1
+DTSTAMP:20261112T010000
+DTSTART;TZID=Asia/Karachi:20261119T150000
+DTEND;TZID=Asia/Karachi:20261119T160000
+SUMMARY:Technical interview
+ORGANIZER;CN=Omar Haddad:mailto:omar.haddad@corvid.example
+ATTENDEE;CN=Tanweer;ROLE=REQ-PARTICIPANT:mailto:tanweer@example.com
+LOCATION:https://meet.google.com/abc-defg-hij
+DESCRIPTION:Join with Google Meet: https://meet.google.com/abc-defg-hij\n
+ Agenda: a 45-minute technical conversation.
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR
+--inv-corvid--

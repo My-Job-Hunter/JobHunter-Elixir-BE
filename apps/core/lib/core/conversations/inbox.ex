@@ -26,13 +26,22 @@ defmodule Core.Conversations.Inbox do
 
   One transaction holds it all, with the ledger rows, the notices and the
   audit row (`Core.Conversations.Record`).
+
+  **A forwarded mail** (AQ-09 §6.2, `Core.Conversations.Forward`) lands
+  through the same `land/8`, given **the receiving channel**: mail from
+  that channel's customer is theirs (out, so a BCC'd reply lands as
+  *out*), a new conversation is the channel's and its customer's, the
+  links follow AQ-09 §7 (`Core.Conversations.Match`), and triage tells
+  the channel's profiles' owners too (QP9-15). Either way an invitation
+  in the mail proposes a meeting on its leads (`Core.Meetings.Proposals`).
   """
 
   alias Core.Audit
   alias Core.Conversations
-  alias Core.Conversations.{Eml, Notices, Record, Tree}
+  alias Core.Conversations.{Eml, Match, Notices, Record, Tree}
   alias Core.Leads
   alias Core.Media
+  alias Core.Meetings.Proposals
   alias Core.Storage
   alias Core.Tasks.Write
   alias Data.Accounts
@@ -104,18 +113,28 @@ defmodule Core.Conversations.Inbox do
 
   # ── Landing ─────────────────────────────────────────────────────────────────
 
-  defp land(scope, team, lead, media, mail, key, now) do
+  @doc """
+  One parsed mail landed in `team` (inside the caller's transaction):
+  `{:ok, conversation, events}`, the message being the conversation's
+  newest. `opts`: `channel:` the receiving channel (AQ-09), `via:` the
+  message's `captured_via` (`:eml_upload` unless said).
+  """
+  @spec land(Scope.t(), map(), map() | nil, map(), map(), String.t(), DateTime.t(), keyword()) ::
+          {:ok, map(), list()} | {:error, term()}
+  def land(scope, team, lead, media, mail, key, now, opts \\ []) do
     org = Scope.organisation_id(scope)
-    sender = sender(scope, team, lead, mail)
-    {c, new?} = conversation(scope, team, lead, mail, sender)
+    channel = opts[:channel]
+    sender = sender(scope, team, lead, mail, channel)
+    {c, new?} = conversation(scope, team, lead, mail, sender, channel)
 
-    with {:ok, linked} <- links(scope, c, lead, sender, now),
-         {:ok, message} <- insert(scope, c, media, mail, sender, key, now) do
+    with {:ok, linked} <- links(scope, c, lead, sender, mail, channel, now),
+         {:ok, message} <- insert(scope, c, media, mail, sender, key, opts[:via], now) do
       :ok = participants(c, sender)
       :ok = relink_children(org, team, c, mail.message_id)
       :ok = attach(scope, message, mail.attachments, now)
       {:ok, _audit} = Audit.record(scope, "created", message, after: snapshot(message), now: now)
       c = Store.reload(c)
+      invites = Proposals.from_mail(scope, Enum.map(c.links, & &1.lead), message, mail, now)
 
       triage =
         if new? and c.links == [],
@@ -124,27 +143,24 @@ defmodule Core.Conversations.Inbox do
               scope,
               c,
               Notices.who(Data.Repo.preload(message, :from_contact)),
-              nil
+              Match.profiles(channel)
             ),
           else: []
 
-      {:ok, c, [linked, Record.message(scope, c, message, now), triage]}
+      {:ok, c, [linked, Record.message(scope, c, message, now), invites, triage]}
     end
   end
 
   # Who wrote it, and which way it went.
-  defp sender(scope, team, lead, %{from: {name, address}} = mail) do
+  defp sender(scope, team, lead, %{from: {name, address}} = mail, channel) do
     text = header(name, address)
     customers = Store.customers_at(team.id, address)
     lead_customer = lead && lead.profile.customer_id
     contact = contact_at(scope, address)
 
     cond do
-      lead_customer && lead_customer in customers ->
-        out(%{from_kind: :customer, from_text: text}, lead_customer, mail, scope)
-
-      is_nil(lead) and length(customers) == 1 ->
-        out(%{from_kind: :customer, from_text: text}, hd(customers), mail, scope)
+      customer_id = customer_of(lead, channel, customers) ->
+        out(%{from_kind: :customer, from_text: text}, customer_id, mail, scope)
 
       user = staff_at(team, address) ->
         out(
@@ -172,6 +188,19 @@ defmodule Core.Conversations.Inbox do
           contacts: [],
           customer_id: lead_customer
         }
+    end
+  end
+
+  # The customer who wrote it: the lead's; the receiving channel's (a reply
+  # they BCC'd to its address, AQ-09 §7); else the one customer at that address.
+  defp customer_of(lead, channel, customers) do
+    lead_customer = lead && lead.profile.customer_id
+
+    cond do
+      lead_customer && lead_customer in customers -> lead_customer
+      channel && channel.customer_id in customers -> channel.customer_id
+      is_nil(lead) and length(customers) == 1 -> hd(customers)
+      true -> nil
     end
   end
 
@@ -212,7 +241,7 @@ defmodule Core.Conversations.Inbox do
 
   # §7.1: headers first; then a child waiting for this one; then the lead;
   # then the subject with the same sender; else a new one.
-  defp conversation(scope, team, lead, mail, sender) do
+  defp conversation(scope, team, lead, mail, sender, channel) do
     org = Scope.organisation_id(scope)
     asked = Enum.reject([mail.in_reply_to | mail.references], &is_nil/1)
     hits = Store.by_rfc_ids(org, team.id, asked)
@@ -222,7 +251,7 @@ defmodule Core.Conversations.Inbox do
         if(lead, do: nil, else: by_subject(team, mail, sender))
 
     case found do
-      nil -> {new(scope, team, lead, mail, sender), true}
+      nil -> {new(scope, team, lead, mail, sender, channel), true}
       id -> {Store.get(org, id), false}
     end
   end
@@ -263,12 +292,15 @@ defmodule Core.Conversations.Inbox do
 
   defp by_subject(_team, _mail, _sender), do: nil
 
-  defp new(scope, team, lead, mail, sender) do
+  defp new(scope, team, lead, mail, sender, channel) do
     {:ok, c} =
       Store.create(%{
         organisation_id: Scope.organisation_id(scope),
         team_id: team.id,
-        customer_id: (lead && lead.profile.customer_id) || sender.customer_id,
+        customer_id:
+          (lead && lead.profile.customer_id) || sender.customer_id ||
+            (channel && channel.customer_id),
+        channel_id: channel && channel.id,
         platform: :email,
         subject: mail.subject
       })
@@ -276,8 +308,8 @@ defmodule Core.Conversations.Inbox do
     c
   end
 
-  # §7.2: by hand with `lead_id`; else one open lead holding the other side.
-  defp links(scope, c, lead, sender, now) do
+  # §7.2: by hand with `lead_id`; else AQ-09 §7's rules (`Match.link/5`).
+  defp links(scope, c, lead, sender, mail, channel, now) do
     cond do
       lead ->
         with {:ok, _how, events} <- Record.link(scope, c, lead, :by_hand, :sure, now),
@@ -287,30 +319,30 @@ defmodule Core.Conversations.Inbox do
         {:ok, []}
 
       true ->
-        case c.team_id
-             |> ContactStore.open_leads_holding(sender.contacts, nil)
-             |> Enum.map(&elem(&1, 0))
-             |> Enum.uniq() do
-          [one] -> likely(scope, c, one, now)
-          _none_or_several -> {:ok, []}
+        case Match.link(c, sender, mail, channel, now) do
+          {method, confidence, lead_ids} ->
+            {:ok, matched(scope, c, lead_ids, method, confidence, now)}
+
+          nil ->
+            {:ok, []}
         end
     end
   end
 
-  defp likely(scope, c, lead_id, now) do
-    case Data.Leads.get(c.organisation_id, lead_id) do
-      nil ->
-        {:ok, []}
-
-      lead ->
-        case Record.link(scope, c, lead, :sender_handle, :likely, now) do
-          {:ok, _how, events} -> {:ok, events}
-          {:error, _another_customer} -> {:ok, []}
-        end
-    end
+  # Each lead linked; one of another customer (or gone) is left to triage.
+  defp matched(scope, c, lead_ids, method, confidence, now) do
+    Enum.reduce(lead_ids, {c, []}, fn lead_id, {c, events} ->
+      with %{} = lead <- Data.Leads.get(c.organisation_id, lead_id),
+           {:ok, _how, linked} <- Record.link(scope, c, lead, method, confidence, now) do
+        {Store.reload(c), [events, linked]}
+      else
+        _refused -> {c, events}
+      end
+    end)
+    |> elem(1)
   end
 
-  defp insert(scope, c, media, mail, sender, key, now) do
+  defp insert(scope, c, media, mail, sender, key, via, now) do
     held = c.id |> Store.rfc_ids() |> MapSet.new()
     parent_rfc = Tree.parent(mail.in_reply_to, mail.references, held)
 
@@ -337,7 +369,7 @@ defmodule Core.Conversations.Inbox do
       rfc_message_id: mail.message_id,
       in_reply_to: mail.in_reply_to,
       references: mail.references,
-      captured_via: :eml_upload,
+      captured_via: via || :eml_upload,
       idempotency_key: key,
       source_media_id: media.id,
       created_by_user_id: Scope.user_id(scope)

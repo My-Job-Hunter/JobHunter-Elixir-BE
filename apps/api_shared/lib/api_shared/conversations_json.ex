@@ -75,6 +75,7 @@ defmodule ApiShared.ConversationsJSON do
       body_html: m.body_html,
       parent_id: m.parent_id,
       captured_via: m.captured_via,
+      invite: m.invite,
       classification: m.classification,
       attachments:
         Enum.map(m.attachments, &Map.take(&1, [:media_id, :filename, :content_type, :url])),
@@ -102,10 +103,16 @@ defmodule ApiShared.ConversationsJSON do
     }
   end
 
-  @doc "**triage item**: `{conversation, first_message (no children), candidates: [{lead, why}]}`."
+  @doc """
+  **triage item**: `{conversation, first_message (no children), candidates:
+  [{lead, why}], profile: {id, title}?, customer: {id, display_name}?}`
+  (AQ-09 §11.4: the receiving channel's profile and customer).
+  """
   def triage_item(t) do
     %{
       conversation: conversation(t.conversation),
+      profile: t.profile,
+      customer: t.customer,
       first_message: t.first_message && message(t.first_message),
       candidates:
         Enum.map(t.candidates, fn c ->
@@ -150,7 +157,11 @@ defmodule ApiShared.ConversationsJSON do
 
   # ── Meetings ────────────────────────────────────────────────────────────────
 
-  @doc "**meeting**, with its `clash: {words}?`."
+  @doc """
+  **meeting**, with its `clash: {words}?`; AQ-09 §11.4's `from_message:
+  {id, conversation_id, subject}?` and `proposal: {organizer, method,
+  sequence, change: {starts_at, ends_at, cancel}?}?`.
+  """
   def meeting(m) do
     %{
       id: m.id,
@@ -172,6 +183,8 @@ defmodule ApiShared.ConversationsJSON do
         end),
       sequence: m.sequence,
       source: m.source,
+      from_message: m.from_message,
+      proposal: m.proposal,
       clash: m.clash,
       can: Map.take(m.can, [:reschedule, :cancel, :done, :no_show, :edit])
     }

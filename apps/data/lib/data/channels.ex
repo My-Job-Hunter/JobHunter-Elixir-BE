@@ -11,7 +11,7 @@ defmodule Data.Channels do
   alias Data.Customers.Channel
   alias Data.Repo
 
-  @preload [:profile_channels, customer: [:customer_teams]]
+  @preload [profile_channels: [profile: :profile_members], customer: [:customer_teams]]
 
   @spec get(binary()) :: Channel.t() | nil
   def get(id) when is_binary(id) do
@@ -76,6 +76,46 @@ defmodule Data.Channels do
   @spec seen(Channel.t(), DateTime.t()) :: :ok
   def seen(%Channel{id: id}, %DateTime{} = at) do
     {_n, _rows} = Repo.update_all(from(c in Channel, where: c.id == ^id), set: [last_seen_at: at])
+    :ok
+  end
+
+  @doc """
+  The live email channel whose token is `token` (AQ-09 §6.1), with its
+  customer, its profiles and their owners, or `nil`: an archived channel's
+  address is nobody's.
+  """
+  @spec by_token(String.t() | nil) :: Channel.t() | nil
+  def by_token(nil), do: nil
+
+  def by_token(token) when is_binary(token) do
+    from(c in Channel,
+      where:
+        c.inbound_token == ^String.downcase(token) and c.kind == :email and
+          is_nil(c.archived_at),
+      preload: ^@preload
+    )
+    |> Repo.one()
+    |> fill()
+  end
+
+  @doc "*New address* (AQ-09 QP9-6): a fresh token; the old one stops at once."
+  @spec renew_token(Channel.t()) :: {:ok, Channel.t()} | {:error, Ecto.Changeset.t()}
+  def renew_token(%Channel{kind: :email} = channel) do
+    channel
+    |> Ecto.Changeset.change(inbound_token: Channel.new_token())
+    |> Ecto.Changeset.unique_constraint(:inbound_token, name: :channels_inbound_token_index)
+    |> Repo.update()
+  end
+
+  @doc "Moves `last_inbound_at` forward to `at`: a mail landed through the address."
+  @spec mark_inbound(binary(), DateTime.t()) :: :ok
+  def mark_inbound(channel_id, %DateTime{} = at) do
+    {_n, _rows} =
+      from(c in Channel,
+        where: c.id == ^channel_id and (is_nil(c.last_inbound_at) or c.last_inbound_at < ^at)
+      )
+      |> Repo.update_all(set: [last_inbound_at: at])
+
     :ok
   end
 

@@ -48,7 +48,7 @@ defmodule Data.SeedsTest do
       # sites' selector documents are there already, so both are kept.
       assert {:ok,
               [
-                {"the notification groups and kinds", %{kept: 36}},
+                {"the notification groups and kinds", %{kept: 38}},
                 {"the extension's selector documents", %{inserted: 0, kept: 2}}
               ]} = Seeds.run(:reference)
 
@@ -56,7 +56,7 @@ defmodule Data.SeedsTest do
 
       assert {:ok,
               [
-                {"the notification groups and kinds", %{inserted: 0, updated: 0, kept: 36}},
+                {"the notification groups and kinds", %{inserted: 0, updated: 0, kept: 38}},
                 {"the extension's selector documents", %{inserted: 0, kept: 2}},
                 {"the skills vocabulary", %{inserted: 0, kept: 0}}
               ]} = Seeds.run(:prod)

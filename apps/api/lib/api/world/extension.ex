@@ -11,6 +11,11 @@ defmodule Api.World.Extension do
   - a LinkedIn for Naveed, `operated_by: customer`,
     `linkedin.com/in/naveed-example`, linked to both his profiles.
 
+  P9's (AQ-09 §13 step 0, `email/2`): an email channel each for Tanweer
+  (`tanweer@example.com`, *Golang backend*) and Naveed
+  (`naveed@example.com`, both his profiles), `listens_via: forwarding`,
+  `operated_by: customer`; each gets its forwarding address on creation.
+
   It replays nothing else new: devices and tokens are never in a snapshot,
   and the selector documents are the reference seed's.
   """
@@ -56,6 +61,36 @@ defmodule Api.World.Extension do
 
     channels = %{"tanweer_upwork" => upwork["id"], "naveed_linkedin" => naveed_in["id"]}
     %{w | channels: Map.merge(w.channels, channels)}
+  end
+
+  @doc "P9's two email channels, and their profiles' links."
+  def email(w, snap) do
+    made =
+      for {name, address, titles} <- [
+            {"Tanweer", "tanweer@example.com", ["Golang backend"]},
+            {"Naveed", "naveed@example.com", ["Elixir backend", "Golang"]}
+          ],
+          into: %{} do
+        channel =
+          Http.call(
+            w,
+            w.admin,
+            :post,
+            "#{@team}/customers/#{customer(w, snap, name)}/channels",
+            %{
+              kind: "email",
+              label: "Gmail",
+              handle: address,
+              operated_by: "customer",
+              listens_via: "forwarding"
+            }
+          )
+
+        for title <- titles, do: link(w, profile(w, snap, name, title), [channel["id"]])
+        {String.downcase(name) <> "_email", channel["id"]}
+      end
+
+    %{w | channels: Map.merge(w.channels, made)}
   end
 
   # A profile's channels become `ids` added to what it has.

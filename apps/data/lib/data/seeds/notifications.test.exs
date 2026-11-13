@@ -7,9 +7,9 @@ defmodule Data.Seeds.NotificationsTest do
 
   doctest Seed
 
-  test "the six groups, Account last, and their thirty kinds, each with in-app; a second load changes nothing" do
+  test "the six groups, Account last, and their thirty-two kinds, each with in-app; a second load changes nothing" do
     _first = Seed.load()
-    assert Seed.load() == %{inserted: 0, updated: 0, kept: 36}
+    assert Seed.load() == %{inserted: 0, updated: 0, kept: 38}
 
     assert [
              %{key: "tasks", label: "Tasks"},
@@ -21,7 +21,7 @@ defmodule Data.Seeds.NotificationsTest do
            ] = Notifications.groups()
 
     kinds = Map.new(Notifications.kinds(), &{&1.key, &1})
-    assert map_size(kinds) == 30
+    assert map_size(kinds) == 32
     assert Enum.all?(kinds, fn {_key, k} -> "inapp" in k.default_channels end)
 
     # AQ-08 §6's corrections and additions (the whole matrix is
@@ -34,6 +34,10 @@ defmodule Data.Seeds.NotificationsTest do
     assert kinds["meetings.day_before"].default_channels == ~w(inapp push email)
     assert kinds["account.digest"].default_channels == ~w(inapp email)
     assert kinds["account.push_test"].default_channels == ~w(inapp push)
+
+    # AQ-09 §11.4's two.
+    assert kinds["meetings.proposed"].default_channels == ~w(inapp push)
+    assert kinds["conversations.forwarding_confirm"].default_channels == ~w(inapp push email)
 
     passing = for {key, %{can_ignore_quiet_hours: true}} <- kinds, do: key
     assert Enum.sort(passing) == ~w(account.digest account.push_test meetings.reminder)
@@ -50,7 +54,7 @@ defmodule Data.Seeds.NotificationsTest do
     |> Ecto.Changeset.change(can_disable: true)
     |> Repo.update!()
 
-    assert Seed.load() == %{inserted: 0, updated: 2, kept: 34}
+    assert Seed.load() == %{inserted: 0, updated: 2, kept: 36}
 
     assert %{default_channels: ~w(inapp push), can_ignore_quiet_hours: true} =
              Repo.get!(Kind, "meetings.reminder")

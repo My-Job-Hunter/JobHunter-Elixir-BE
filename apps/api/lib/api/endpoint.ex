@@ -58,14 +58,59 @@ defmodule Api.Endpoint do
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
-  plug Plug.Parsers,
-    parsers: [:urlencoded, :multipart, :json],
-    pass: ["*/*"],
-    json_decoder: Phoenix.json_library()
+  # Bodies parsed by `parse/2`: Plug's 8 MB default everywhere, except the
+  # mail provider's webhook, whose cap is 30 MB (AQ-09 §6.2) on that route
+  # alone.
+  plug :parse
 
   plug Plug.MethodOverride
   plug Plug.Head
   plug Api.Router
+
+  @parsers Plug.Parsers.init(
+             parsers: [:urlencoded, :multipart, :json],
+             pass: ["*/*"],
+             json_decoder: Jason
+           )
+
+  @inbound "/inbound/email"
+
+  @doc """
+  The body parser, chosen by path. `POST /inbound/email` carries a whole
+  forwarded mail (Postmark's JSON with `RawEmail`), so its JSON may be up
+  to `Core.Inbound.max_bytes/0` (30 MB); every other route keeps Plug's
+  8 MB. Over the cap the webhook answers 413 (`file_too_large`), and logs
+  the delivery `too_large` when its credentials are right
+  (`Api.InboundController.too_large/2`).
+  """
+  def parse(%Plug.Conn{request_path: @inbound} = conn, _opts) do
+    max = Core.Inbound.max_bytes()
+
+    if declared(conn) > max do
+      Api.InboundController.too_large(conn, declared(conn))
+    else
+      opts = Plug.Parsers.init(parsers: [:json], pass: ["*/*"], json_decoder: Jason, length: max)
+      Plug.Parsers.call(conn, opts)
+    end
+  rescue
+    Plug.Parsers.RequestTooLargeError ->
+      Api.InboundController.too_large(conn, max(declared(conn), Core.Inbound.max_bytes() + 1))
+  end
+
+  def parse(conn, _opts), do: Plug.Parsers.call(conn, @parsers)
+
+  defp declared(conn) do
+    case Plug.Conn.get_req_header(conn, "content-length") do
+      [length | _rest] ->
+        case Integer.parse(length) do
+          {n, ""} -> n
+          _bad -> 0
+        end
+
+      [] ->
+        0
+    end
+  end
 
   @doc """
   Who may call this API from a browser.

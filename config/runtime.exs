@@ -26,6 +26,22 @@ if vapid_private = System.get_env("VAPID_PRIVATE_KEY") do
     subject: System.get_env("VAPID_SUBJECT", "mailto:support@autoqare.com")
 end
 
+# Forwarded mail (AQ-09 §6, §11.4): the address with `{token}` (Postmark's
+# own `<hash>+{token}@inbound.postmarkapp.com` until P13's domain), and the
+# webhook's basic-auth pair. Without a password the webhook answers 503.
+if inbound_address = System.get_env("INBOUND_ADDRESS") do
+  unless String.contains?(inbound_address, "{token}"),
+    do: raise("INBOUND_ADDRESS must hold {token}, e.g. in+{token}@in.autoqare.com")
+
+  config :core, :inbound, address: inbound_address
+end
+
+if inbound_password = System.get_env("INBOUND_PASSWORD") do
+  config :core, :inbound,
+    user: System.get_env("INBOUND_USER", "postmark"),
+    password: inbound_password
+end
+
 if config_env() == :prod do
   # Never the stand-in in a release.
   config :core, :google, stand_in: false

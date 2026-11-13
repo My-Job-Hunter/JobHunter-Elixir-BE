@@ -18,6 +18,10 @@ defmodule Data.Seeds.Notifications do
   (`Data.Notifications.upsert_kind/1`): a changed default reaches a database
   seeded before the change. People's switches are their own rows, untouched.
 
+  **P9 (AQ-09 §11.4, §14, QP9-18)** adds `conversations.forwarding_confirm`
+  (Gmail's forwarding code, in-app · push · email) and `meetings.proposed`
+  (an invitation's proposal, in-app · push): 32 kinds.
+
   Each kind's **label** is code too (`label/1`): the name delivery health
   shows ("Approval requested"), since the table has no column for it.
   """
@@ -53,10 +57,12 @@ defmodule Data.Seeds.Notifications do
     {"leads.archived", ~w(inapp digest), "Lead archived", false},
     {"conversations.reply_received", ~w(inapp push extension), "Reply received", false},
     {"conversations.triage_new", ~w(inapp digest), "New in Triage", false},
+    {"conversations.forwarding_confirm", ~w(inapp push email), "Gmail forwarding code", false},
     {"meetings.scheduled", ~w(inapp push email), "Meeting scheduled", false},
     {"meetings.changed", ~w(inapp push email), "Meeting changed", false},
     {"meetings.day_before", ~w(inapp push email), "Meeting tomorrow", false},
     {"meetings.reminder", ~w(inapp push), "Meeting reminder", true},
+    {"meetings.proposed", ~w(inapp push), "Invitation to confirm", false},
     {"approvals.requested", ~w(inapp push email), "Approval requested", false},
     {"approvals.decided", ~w(inapp push email), "Approval decided", false},
     {"approvals.commented", ~w(inapp push), "Approval comment", false},

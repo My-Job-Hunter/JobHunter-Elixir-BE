@@ -43,7 +43,7 @@ defmodule Core.Access.Conversations do
   @captured_words "Captured messages can't be edited."
   @team_words "That is for the team serving you to do."
 
-  @meeting_writes [:schedule, :reschedule, :cancel, :done, :no_show, :edit]
+  @meeting_writes [:schedule, :reschedule, :cancel, :done, :no_show, :edit, :confirm, :dismiss]
 
   @doc "Every action a conversation answers, for the matrix."
   def conversation_actions, do: [:read, :write, :triage]

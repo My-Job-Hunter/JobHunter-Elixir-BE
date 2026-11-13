@@ -10,6 +10,7 @@ defmodule Core.Meetings.Notices do
   | `meetings.scheduled` · `meetings.changed` | the customer, the lead's owner, staff attendees — not the actor | `meeting:<id>:<sequence>` |
   | `meetings.day_before` | the 24 h reminder (AQ-08 QP8-4: with email), to the same people | `meeting:<id>:remind:1440:<starts_at>` |
   | `meetings.reminder` | the 1 h and 10 min reminders, to the same people; passes quiet hours | `meeting:<id>:remind:<offset>:<starts_at>` |
+  | `meetings.proposed` | an invitation's proposal (AQ-09 §11.4), to the lead's owner alone | `meeting:<id>:proposed:<sequence>` (the invitation's) |
 
   **The emails of `scheduled` and `changed` carry the invite** (AQ-08
   §11.4): the meeting's `.ics` from `Core.Meetings.Ics`, `METHOD:REQUEST`,
@@ -56,6 +57,58 @@ defmodule Core.Meetings.Notices do
           else: "#{about(meeting)} moved to #{Words.at(meeting.starts_at, zone)}"
       end
     )
+  end
+
+  @doc """
+  `meetings.proposed` (AQ-09 §12.3) to the lead's owner, in their zone:
+  "Corvid Security sent an invitation: Technical interview, Wed 18 Nov
+  14:00 PKT. Confirm it?" — for a proposed move "Corvid Security moved
+  Technical interview to Thu 19 Nov 15:00 PKT. Accept the change?", for a
+  cancel "Corvid Security cancelled Technical interview. Accept the
+  cancel?". The sender is the job's company, else the organizer.
+  """
+  @spec proposed(Scope.t(), map()) :: list()
+  def proposed(scope, meeting) do
+    owner = meeting.lead.owner_user_id
+    proposal = meeting.proposal || %{}
+
+    if is_nil(owner) or owner == Scope.user_id(scope) do
+      []
+    else
+      zone = zone_of(owner)
+      who = sender(meeting, proposal)
+
+      title =
+        case proposal["change"] do
+          %{"cancel" => true} ->
+            "#{who} cancelled #{meeting.title}. Accept the cancel?"
+
+          %{"starts_at" => at} when is_binary(at) ->
+            {:ok, starts, _offset} = DateTime.from_iso8601(at)
+            "#{who} moved #{meeting.title} to #{Words.at(starts, zone)}. Accept the change?"
+
+          _new ->
+            "#{who} sent an invitation: #{meeting.title}, #{Words.at(meeting.starts_at, zone)}. Confirm it?"
+        end
+
+      ensure(
+        scope,
+        meeting,
+        owner,
+        "meetings.proposed",
+        "meeting:#{meeting.id}:proposed:#{proposal["sequence"] || 0}",
+        title: title,
+        actor: nil,
+        link: "/leads/#{meeting.lead_id}"
+      )
+    end
+  end
+
+  defp sender(meeting, proposal) do
+    case meeting.lead.job.company do
+      %{name: name} -> name
+      _none -> proposal["organizer"] || "Someone"
+    end
   end
 
   # The invite an email carries (AQ-08 §11.4).

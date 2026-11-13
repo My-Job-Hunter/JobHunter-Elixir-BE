@@ -55,6 +55,7 @@ config :core, Oban,
     # extension's misses (AQ-05 §5.2): hourly, forgotten after 30 days.
     # The delivery sweep (AQ-08 §7.2, PLAN §15.7), `notifire`'s, and the
     # digest scan (§7.4): every five minutes; the sweep also runs on write.
+    # The intake log (AQ-09 QP9-8): hourly, forgotten after 30 days.
     {Oban.Plugins.Cron,
      crontab: [
        {"20 3 * * *", Core.Media.SweepWorker},
@@ -65,6 +66,7 @@ config :core, Oban,
        {"20 * * * *", Core.Workers.RetentionPurgeSweep},
        {"25 * * * *", Core.Extension.MissSweep},
        {"30 * * * *", Core.Workers.ApprovalExpirySweep},
+       {"35 * * * *", Core.Workers.InboundSweep},
        {"*/5 * * * *", Notifire.Workers.DeliveryWorker},
        {"*/5 * * * *", Core.Workers.DigestScan}
      ]}
@@ -133,6 +135,21 @@ config :core, :storage,
   adapter: Core.Storage.Local,
   root: Path.expand("../priv/uploads", __DIR__),
   max_bytes: [photo: 5_000_000, document: 10_000_000, attachment: 10_000_000, eml: 5_000_000]
+
+# Forwarded mail (AQ-09 §6, §11.4). Each email channel's address is built
+# from its token: `{token}` in `address` is replaced. The webhook
+# (`POST /inbound/email`) trusts the provider by basic auth, `user` and
+# `password`; without a password it answers 503 `inbound_off`. dev.exs and
+# test.exs set a pair; runtime.exs reads INBOUND_ADDRESS, INBOUND_USER and
+# INBOUND_PASSWORD. `max_bytes` is the webhook's body cap (30 MB, on that
+# route alone: `Api.Endpoint`), `per_minute` the deliveries one address may
+# take in a minute.
+config :core, :inbound,
+  address: "in+{token}@inbound.autoqare.local",
+  user: nil,
+  password: nil,
+  max_bytes: 30 * 1024 * 1024,
+  per_minute: 60
 
 # Swoosh boots with hackney by default and raises without it. Req is the
 # house HTTP client and hackney is deliberately absent.

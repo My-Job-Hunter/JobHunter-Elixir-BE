@@ -55,6 +55,7 @@ defmodule Data.Conversations.Message do
     belongs_to(:classified_by_user, User)
     belongs_to(:created_by_user, User)
     has_many(:attachments, MessageMedia)
+    has_many(:invites, Data.Meetings.Meeting, foreign_key: :from_message_id)
 
     timestamps()
   end

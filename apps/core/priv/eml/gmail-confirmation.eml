@@ -1,0 +1,21 @@
+Message-ID: <20261104070000.forwarding-check@google.com>
+Date: Wed, 04 Nov 2026 07:00:00 +0000
+From: Gmail Team <forwarding-noreply@google.com>
+To: in+abcdefghjk@inbound.autoqare.local
+Subject: (#482915736) Gmail Forwarding Confirmation - Receive Mail from tanweer.inbox@example.com
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+tanweer.inbox@example.com has requested to automatically forward mail to your
+email address in+abcdefghjk@inbound.autoqare.local.
+Confirmation code: 482915736
+
+To allow tanweer.inbox@example.com to automatically forward mail to your
+address, please click the link below to confirm the request:
+
+https://mail-settings.google.com/mail/vf-%5BANGjdJ-example-check%5D-example-token
+
+If you click the link and it appears to be broken, please copy and paste it
+into a new browser window.
+
+(A made-up confirmation for AutoQare's tests.)

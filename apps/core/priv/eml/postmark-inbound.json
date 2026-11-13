@@ -1,0 +1,52 @@
+{
+  "FromName": "Mei Chen",
+  "MessageStream": "inbound",
+  "From": "mei.chen@juniperedge.example",
+  "FromFull": {
+    "Email": "mei.chen@juniperedge.example",
+    "Name": "Mei Chen",
+    "MailboxHash": ""
+  },
+  "To": "\"Tanweer\" <tanweer@example.com>",
+  "ToFull": [
+    {
+      "Email": "tanweer@example.com",
+      "Name": "Tanweer",
+      "MailboxHash": ""
+    }
+  ],
+  "Cc": "",
+  "CcFull": [],
+  "Bcc": "",
+  "BccFull": [],
+  "OriginalRecipient": "in+abcdefghjk@inbound.autoqare.local",
+  "Subject": "A second role at Juniper Edge",
+  "MessageID": "73e6d360-66eb-11e1-8e72-a8904824019b",
+  "ReplyTo": "",
+  "MailboxHash": "abcdefghjk",
+  "Date": "Sat, 7 Nov 2026 08:15:00 +0800",
+  "TextBody": "Hi Tanweer,\n\nBesides the Platform Engineer role, our data team is hiring too. Shall I\nsend the details?\n\nMei\n",
+  "HtmlBody": "",
+  "StrippedTextReply": "",
+  "Tag": "",
+  "Headers": [
+    {
+      "Name": "X-Spam-Status",
+      "Value": "No"
+    },
+    {
+      "Name": "X-Spam-Score",
+      "Value": "-0.1"
+    },
+    {
+      "Name": "Received-SPF",
+      "Value": "Pass"
+    },
+    {
+      "Name": "Message-ID",
+      "Value": "<20261107081500.mei-4@juniperedge.example>"
+    }
+  ],
+  "Attachments": [],
+  "RawEmail": "Return-Path: <mei.chen@juniperedge.example>\r\nMessage-ID: <20261107081500.mei-4@juniperedge.example>\r\nDate: Sat, 07 Nov 2026 08:15:00 +0800\r\nFrom: Mei Chen <mei.chen@juniperedge.example>\r\nTo: Tanweer <tanweer@example.com>\r\nSubject: A second role at Juniper Edge\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nHi Tanweer,\r\n\r\nBesides the Platform Engineer role, our data team is hiring too. Shall I\r\nsend the details?\r\n\r\nMei\r\n"
+}

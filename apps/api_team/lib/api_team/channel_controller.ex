@@ -34,4 +34,10 @@ defmodule ApiTeam.ChannelController do
     with {:ok, channel} <- Channels.archive(conn.assigns.scope, id, Clock.now()),
          do: json(conn, CustomersJSON.channel(channel))
   end
+
+  @doc "*New address* (AQ-09 §11.4): a fresh forwarding address; the old one stops at once."
+  def renew_address(conn, %{"id" => id}) do
+    with {:ok, channel} <- Channels.renew_address(conn.assigns.scope, id, Clock.now()),
+         do: json(conn, CustomersJSON.channel(channel))
+  end
 end

@@ -150,6 +150,38 @@ defmodule Core.Media do
     end
   end
 
+  @doc """
+  A forwarded mail's raw bytes kept (AQ-09 QP9-20) as an `eml`
+  (`message/rfc822`), stored and confirmed at once, the way an upload's
+  `.eml` is kept: the message's `source_media_id`, re-read for an
+  invitation when triage links it later, deleted with the message's
+  conversation. Its size was capped by the webhook (30 MB), not here.
+  """
+  @spec store_email(Scope.t(), binary(), DateTime.t()) :: {:ok, Media.t()} | {:error, term()}
+  def store_email(%Scope{} = scope, bytes, %DateTime{} = now)
+      when is_binary(bytes) and byte_size(bytes) > 0 do
+    key = Storage.key_for("message/rfc822")
+
+    with :ok <- Storage.put(key, bytes),
+         {:ok, media} <-
+           Files.create(%{
+             organisation_id: Scope.organisation_id(scope),
+             owner_user_id: Scope.user_id(scope),
+             media_kind: :eml,
+             storage_key: key,
+             content_type: "message/rfc822",
+             byte_count: byte_size(bytes),
+             original_filename: "forwarded.eml"
+           }),
+         {:ok, media} <-
+           Files.mark_stored(media, %{
+             sha256: :crypto.hash(:sha256, bytes),
+             byte_count: byte_size(bytes)
+           }) do
+      Files.mark_uploaded(media, %{}, now)
+    end
+  end
+
   @doc "The link a view hands out: the file's path with a token good for an hour, relative to the API prefix."
   @spec link(binary()) :: String.t()
   def link(id), do: "/media/#{id}?t=#{Plug.Crypto.sign(secret(), @salt, id)}"

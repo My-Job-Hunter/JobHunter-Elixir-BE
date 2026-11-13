@@ -151,7 +151,8 @@ defmodule Data.VocabularyTest do
              ~w(recruiter hiring_manager interviewer client referrer other)
 
     assert Vocabulary.match_methods() ==
-             ~w(by_hand headers thread_id sender_handle created_from_triage)
+             ~w(by_hand headers thread_id sender_handle created_from_triage receiving_inbox
+                sender_domain platform_notice)
 
     assert Vocabulary.match_confidences() == ~w(sure likely)
     assert Vocabulary.message_directions() == ~w(in out)
@@ -162,7 +163,7 @@ defmodule Data.VocabularyTest do
              ~w(interested interview_invitation more_info rejection position_closed unsubscribe
                 bounce general)
 
-    assert Vocabulary.meeting_statuses() == ~w(scheduled done cancelled no_show)
+    assert Vocabulary.meeting_statuses() == ~w(proposed scheduled done cancelled no_show)
     assert Vocabulary.meeting_sources() == ~w(manual email_invite extension)
 
     assert Vocabulary.meeting_kinds() ==
@@ -170,6 +171,14 @@ defmodule Data.VocabularyTest do
 
     assert Vocabulary.meeting_platforms() ==
              ~w(zoom google_meet teams upwork phone on_site other)
+  end
+
+  # AQ-09 §11.4, word for word and in order, in both repos and the extension's copy.
+  test "P9's lists (AQ-09 §11.4), in their order" do
+    assert Vocabulary.inbound_outcomes() ==
+             ~w(landed duplicate unknown_address gmail_confirmation unreadable too_large)
+
+    assert Vocabulary.inbound_providers() == ~w(postmark dev)
   end
 
   # AQ-07 §11.4, word for word and in order, in every repo.

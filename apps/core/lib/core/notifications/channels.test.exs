@@ -1,7 +1,7 @@
 defmodule Core.Notifications.ChannelsTest do
   @moduledoc """
   The planning rule (AQ-08 §6, §7.1, §11.4), **as a table over every kind
-  and chair**: each of the 30 kinds plans exactly the ledger rows of §6 for
+  and chair**: each of the 32 kinds (AQ-09 adds two) plans exactly the ledger rows of §6 for
   each chair — staff with a browser and the extension, staff with neither, a
   customer with a browser, a customer with none — at the right moment.
   Pure: no database.
@@ -36,10 +36,12 @@ defmodule Core.Notifications.ChannelsTest do
     "leads.archived" => ~w(inapp digest),
     "conversations.reply_received" => ~w(inapp push extension),
     "conversations.triage_new" => ~w(inapp digest),
+    "conversations.forwarding_confirm" => ~w(inapp push email),
     "meetings.scheduled" => ~w(inapp push email),
     "meetings.changed" => ~w(inapp push email),
     "meetings.day_before" => ~w(inapp push email),
     "meetings.reminder" => ~w(inapp push),
+    "meetings.proposed" => ~w(inapp push),
     "approvals.requested" => ~w(inapp push email),
     "approvals.decided" => ~w(inapp push email),
     "approvals.commented" => ~w(inapp push),
@@ -79,7 +81,7 @@ defmodule Core.Notifications.ChannelsTest do
   defp plan(key, switches \\ %{}, targets, settings \\ @no_window, now \\ @now),
     do: Channels.plan(kind(key), switches, targets, settings, now)
 
-  test "the reference seed holds §6's matrix: thirty kinds, three of them passing quiet hours" do
+  test "the reference seed holds §6's matrix: thirty-two kinds, three of them passing quiet hours" do
     assert Map.new(Seed.kinds()) == @matrix
     assert Enum.sort(Seed.passing_quiet_hours()) == Enum.sort(@passing)
   end

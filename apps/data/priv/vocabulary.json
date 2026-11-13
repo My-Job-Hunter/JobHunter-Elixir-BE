@@ -194,6 +194,18 @@
     "linkedin",
     "upwork"
   ],
+  "inbound_outcomes": [
+    "landed",
+    "duplicate",
+    "unknown_address",
+    "gmail_confirmation",
+    "unreadable",
+    "too_large"
+  ],
+  "inbound_providers": [
+    "postmark",
+    "dev"
+  ],
   "job_close_reasons": [
     "filled",
     "expired",
@@ -305,7 +317,10 @@
     "headers",
     "thread_id",
     "sender_handle",
-    "created_from_triage"
+    "created_from_triage",
+    "receiving_inbox",
+    "sender_domain",
+    "platform_notice"
   ],
   "meeting_kinds": [
     "screening",
@@ -331,6 +346,7 @@
     "extension"
   ],
   "meeting_statuses": [
+    "proposed",
     "scheduled",
     "done",
     "cancelled",

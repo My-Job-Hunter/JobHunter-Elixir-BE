@@ -174,6 +174,7 @@ defmodule Core.Conversations do
       body_html: m.body_html,
       parent_id: m.parent_message_id,
       captured_via: captured_via(ctx, m),
+      invite: invite(ctx, m),
       classification: if(ctx.customer?, do: nil, else: m.classification),
       attachments: attachments(m),
       deleted: deleted?,
@@ -195,6 +196,17 @@ defmodule Core.Conversations do
       reply: not deleted? and not m.is_internal and ctx.write?
     }
   end
+
+  # AQ-09 §11.4: the meeting an invitation in this mail proposed (the
+  # customer never sees a proposed one).
+  defp invite(ctx, %Message{invites: [_ | _] = meetings}) do
+    case Enum.reject(meetings, &(ctx.customer? and &1.status == :proposed)) do
+      [m | _rest] -> %{meeting_id: m.id}
+      [] -> nil
+    end
+  end
+
+  defp invite(_ctx, _message), do: nil
 
   # A press in the extension is the person's, as anywhere the customer reads.
   defp captured_via(%{customer?: true}, %{captured_via: :extension}), do: :manual

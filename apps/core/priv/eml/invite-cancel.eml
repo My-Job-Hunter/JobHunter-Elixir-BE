@@ -1,0 +1,46 @@
+Message-ID: <invite-2@corvid.example>
+Date: Thu, 12 Nov 2026 02:00:00 +0000
+From: Omar Haddad <omar.haddad@corvid.example>
+To: Tanweer <tanweer@example.com>
+Subject: Cancelled: Technical interview
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="inv-corvid"
+
+--inv-corvid
+Content-Type: text/plain; charset=utf-8
+
+Hi Tanweer, I'm sorry, we have to cancel the interview.
+
+Omar
+--inv-corvid
+Content-Type: text/calendar; charset=utf-8; method=CANCEL
+
+BEGIN:VCALENDAR
+PRODID:-//Corvid Security//Calendar//EN
+VERSION:2.0
+METHOD:CANCEL
+BEGIN:VTIMEZONE
+TZID:Asia/Karachi
+BEGIN:STANDARD
+TZOFFSETFROM:+0500
+TZOFFSETTO:+0500
+TZNAME:PKT
+DTSTART:19700101T000000
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:corvid-interview-7@corvid.example
+SEQUENCE:2
+DTSTAMP:20261112T020000
+DTSTART;TZID=Asia/Karachi:20261119T150000
+DTEND;TZID=Asia/Karachi:20261119T160000
+SUMMARY:Technical interview
+ORGANIZER;CN=Omar Haddad:mailto:omar.haddad@corvid.example
+ATTENDEE;CN=Tanweer;ROLE=REQ-PARTICIPANT:mailto:tanweer@example.com
+LOCATION:https://meet.google.com/abc-defg-hij
+DESCRIPTION:Join with Google Meet: https://meet.google.com/abc-defg-hij\n
+ Agenda: a 45-minute technical conversation.
+STATUS:CANCELLED
+END:VEVENT
+END:VCALENDAR
+--inv-corvid--

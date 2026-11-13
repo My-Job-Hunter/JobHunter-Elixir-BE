@@ -45,7 +45,8 @@ defmodule Api.RouterTest do
           {:post, "/dev/clock"},
           {:post, "/dev/sweeps"},
           {:get, "/dev/push/json"},
-          {:delete, "/dev/push/json"}
+          {:delete, "/dev/push/json"},
+          {:post, "/dev/inbound"}
         ],
         do: assert(dispatch(conn, @endpoint, method, path).status == 404)
   end

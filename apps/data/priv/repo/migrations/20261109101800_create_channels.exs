@@ -15,6 +15,14 @@ defmodule Data.Repo.Migrations.CreateChannels do
   `Utils.ChannelKey` (`linkedin:tanweer`, `upwork:~01aa…`; null for an inbox
   or a site the rules don't know): unique per kind among live channels,
   because one account belongs to one person, whichever customer typed it.
+
+  **`inbound_token`** (AQ-09 §5, §6.1, QP9-5): an email channel's
+  forwarding address is `in+<token>@<inbound domain>`, built from the
+  token and `config :core, :inbound` (one fact, one place), so no address
+  is stored. Ten characters (`a–z`, `2–9`, no look-alikes), unique, set
+  when an email channel is made and replaced by *New address*; **an email
+  channel always has one and no other kind ever does**. `last_inbound_at`
+  is the last mail that landed through it.
   """
 
   def change do
@@ -30,7 +38,8 @@ defmodule Data.Repo.Migrations.CreateChannels do
       add(:identity_key, :string)
       add(:operated_by, :string, null: false)
       add(:listens_via, :string, null: false, default: "none")
-      add(:inbound_address, :citext)
+      add(:inbound_token, :citext)
+      add(:last_inbound_at, :timestamptz)
       add(:last_seen_at, :timestamptz)
       add(:status, :string, null: false, default: "active")
       add(:archived_at, :timestamptz)
@@ -62,6 +71,19 @@ defmodule Data.Repo.Migrations.CreateChannels do
     )
 
     create(constraint(:channels, :handle_present, check: "btrim(handle) <> ''"))
+
+    create(
+      constraint(:channels, :inbound_token_only_email,
+        check: "(inbound_token IS NOT NULL) = (kind = 'email')"
+      )
+    )
+
+    create(
+      unique_index(:channels, [:inbound_token],
+        where: "inbound_token IS NOT NULL",
+        name: :channels_inbound_token_index
+      )
+    )
 
     create(
       unique_index(:channels, [:customer_id, :kind, :handle_normalized],

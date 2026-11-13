@@ -62,13 +62,14 @@ defmodule Core.Conversations.Notices do
 
   @doc """
   `conversations.triage_new` to the team's leads and the acting profile's
-  owners (`profile`, when known): "New in Triage: Mei Chen · Platform
+  owners (`profile`, when known; a list of them for a forwarded mail's
+  receiving channel, AQ-09 QP9-15): "New in Triage: Mei Chen · Platform
   Engineer role".
   """
-  @spec triage_new(Scope.t(), map(), String.t(), map() | nil) :: list()
-  def triage_new(scope, conversation, who, profile) do
+  @spec triage_new(Scope.t(), map(), String.t(), map() | [map()] | nil) :: list()
+  def triage_new(scope, conversation, who, profiles) do
     leads = for m <- Teams.list_members(conversation.team_id), m.role == :lead, do: m.user_id
-    owners = profile_owners(profile)
+    owners = profiles |> List.wrap() |> Enum.flat_map(&profile_owners/1)
     about = if conversation.subject, do: " · " <> conversation.subject, else: ""
 
     for user_id <- Enum.uniq(leads ++ owners) do
@@ -80,8 +81,6 @@ defmodule Core.Conversations.Notices do
       })
     end
   end
-
-  defp profile_owners(nil), do: []
 
   defp profile_owners(profile) do
     case Map.get(profile, :profile_members) do

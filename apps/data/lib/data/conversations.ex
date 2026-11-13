@@ -18,8 +18,8 @@ defmodule Data.Conversations do
   def preload do
     [
       :team,
-      :channel,
       :customer,
+      channel: [profile_channels: [profile: :profile_members]],
       links: [lead: Data.Leads.base_preload()],
       participants: [contact: Data.Contacts.preload()]
     ]
@@ -27,6 +27,7 @@ defmodule Data.Conversations do
 
   @message_preload [
     :from_contact,
+    :invites,
     from_user: @person,
     attachments: [:media]
   ]
